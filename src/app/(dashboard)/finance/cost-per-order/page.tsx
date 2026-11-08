@@ -1,13 +1,28 @@
-import { ComingNext } from "@/components/dashboard/coming-next";
+import { FacilityAnalytics } from "@/components/dashboard/facility-analytics";
+import { PageIntro } from "@/components/dashboard/coming-next";
+import { requireRequestContext } from "@/server/services/context";
 
 export const dynamic = "force-dynamic";
 
-export default function CostPerOrderPage() {
+export default async function CostPerOrderPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string }>;
+}) {
+  const context = await requireRequestContext();
+  const query = await searchParams;
   return (
-    <ComingNext
-      title="Cost per order"
-      phase="Phase 3"
-      description="Cost per order is operating cost divided by orders. A zero-order period returns unavailable instead of $0."
-    />
+    <div>
+      <PageIntro
+        title="Cost per order"
+        description="Operating cost divided by facility orders. A period with no orders stays unavailable."
+      />
+      <FacilityAnalytics
+        context={context}
+        query={query}
+        pathname="/finance/cost-per-order"
+        focus="cost-per-order"
+      />
+    </div>
   );
 }

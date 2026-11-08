@@ -1,13 +1,28 @@
-import { ComingNext } from "@/components/dashboard/coming-next";
+import { FacilityAnalytics } from "@/components/dashboard/facility-analytics";
+import { PageIntro } from "@/components/dashboard/coming-next";
+import { requireRequestContext } from "@/server/services/context";
 
 export const dynamic = "force-dynamic";
 
-export default function OperatingCostsPage() {
+export default async function OperatingCostsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string }>;
+}) {
+  const context = await requireRequestContext();
+  const query = await searchParams;
   return (
-    <ComingNext
-      title="Operating costs"
-      phase="Phase 3"
-      description="Labor, energy, equipment, overhead, and maintenance will be summed from financial_metrics. No cost total is shown here yet."
-    />
+    <div>
+      <PageIntro
+        title="Operating costs"
+        description="Labor, maintenance, energy, equipment, and overhead summed from stored cost rows."
+      />
+      <FacilityAnalytics
+        context={context}
+        query={query}
+        pathname="/finance/operating-costs"
+        focus="costs"
+      />
+    </div>
   );
 }

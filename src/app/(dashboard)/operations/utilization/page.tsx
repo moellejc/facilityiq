@@ -1,13 +1,28 @@
-import { ComingNext } from "@/components/dashboard/coming-next";
+import { FacilityAnalytics } from "@/components/dashboard/facility-analytics";
+import { PageIntro } from "@/components/dashboard/coming-next";
+import { requireRequestContext } from "@/server/services/context";
 
 export const dynamic = "force-dynamic";
 
-export default function UtilizationPage() {
+export default async function UtilizationPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string }>;
+}) {
+  const context = await requireRequestContext();
+  const query = await searchParams;
   return (
-    <ComingNext
-      title="Utilization"
-      phase="Phase 3"
-      description="Area and asset utilization charts will average stored samples. An empty period stays blank instead of rendering 0%."
-    />
+    <div>
+      <PageIntro
+        title="Utilization"
+        description="Asset, area, and packing-station capacity utilization. Empty periods stay unavailable."
+      />
+      <FacilityAnalytics
+        context={context}
+        query={query}
+        pathname="/operations/utilization"
+        focus="utilization"
+      />
+    </div>
   );
 }

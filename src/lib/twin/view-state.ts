@@ -1,3 +1,4 @@
+import type { HeatmapMode } from "@/lib/analytics/aggregate";
 import {
   ASSET_CATEGORIES,
   type AssetCategory,
@@ -12,6 +13,7 @@ export type TwinViewState = {
   showLabels: boolean;
   projection: CameraProjection;
   heatmapEnabled: boolean;
+  heatmapMode: HeatmapMode;
   cameraResetToken: number;
   focusToken: number;
 };
@@ -25,6 +27,7 @@ export type TwinViewAction =
   | { type: "toggle-labels" }
   | { type: "set-projection"; projection: CameraProjection }
   | { type: "toggle-heatmap" }
+  | { type: "set-heatmap-mode"; mode: HeatmapMode }
   | { type: "reset-camera" }
   | { type: "focus-selected" };
 
@@ -35,6 +38,7 @@ export const initialTwinViewState: TwinViewState = {
   showLabels: true,
   projection: "perspective",
   heatmapEnabled: false,
+  heatmapMode: "utilization",
   cameraResetToken: 0,
   focusToken: 0,
 };
@@ -63,6 +67,8 @@ export function twinViewReducer(state: TwinViewState, action: TwinViewAction): T
         : { ...state, projection: action.projection, cameraResetToken: state.cameraResetToken + 1 };
     case "toggle-heatmap":
       return { ...state, heatmapEnabled: !state.heatmapEnabled };
+    case "set-heatmap-mode":
+      return { ...state, heatmapMode: action.mode, heatmapEnabled: true };
     case "reset-camera":
       return {
         ...state,

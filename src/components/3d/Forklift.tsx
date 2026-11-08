@@ -2,8 +2,8 @@
 
 import { SELECTED_COLOR } from "@/lib/twin/procedural";
 
-export function Forklift({ selected }: { selected: boolean }) {
-  const body = selected ? SELECTED_COLOR : "#eab308";
+export function Forklift({ selected, tint }: { selected: boolean; tint?: string | null }) {
+  const body = selected ? SELECTED_COLOR : (tint ?? "#eab308");
   return (
     <group>
       <mesh position={[0, 0.38, 0.05]} castShadow>

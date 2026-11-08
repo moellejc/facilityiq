@@ -9,16 +9,18 @@ export function FacilityArea({
   area,
   selected,
   showLabel,
+  tint,
   onSelect,
 }: {
   area: SceneArea;
   selected: boolean;
   showLabel: boolean;
+  tint?: string | null;
   onSelect: (id: string) => void;
 }) {
   const centerX = area.position.x + area.size.width / 2;
   const centerZ = area.position.z + area.size.depth / 2;
-  const tint = AREA_TINT[area.areaType] ?? "#cbd5e1";
+  const zoneTint = AREA_TINT[area.areaType] ?? "#cbd5e1";
 
   return (
     <group>
@@ -31,7 +33,7 @@ export function FacilityArea({
       >
         <boxGeometry args={[area.size.width, 0.08, area.size.depth]} />
         <meshStandardMaterial
-          color={selected ? SELECTED_COLOR : tint}
+          color={selected ? SELECTED_COLOR : (tint ?? zoneTint)}
           transparent
           opacity={selected ? 0.55 : 0.22}
         />

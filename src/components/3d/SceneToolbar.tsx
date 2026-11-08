@@ -1,5 +1,7 @@
 "use client";
 
+import type { HeatmapMode } from "@/lib/analytics/aggregate";
+import { HEATMAP_MODE_LABEL } from "@/lib/analytics/heatmap";
 import { Button } from "@/components/ui/button";
 import { ASSET_CATEGORIES, type AssetCategory, type CameraProjection } from "@/lib/twin/types";
 import { isCategoryVisible, type TwinViewAction, type TwinViewState } from "@/lib/twin/view-state";
@@ -15,9 +17,11 @@ const CATEGORY_LABEL: Record<AssetCategory, string> = {
 
 export function SceneToolbar({
   view,
+  modes,
   dispatch,
 }: {
   view: TwinViewState;
+  modes: HeatmapMode[];
   dispatch: (action: TwinViewAction) => void;
 }) {
   return (
@@ -86,6 +90,23 @@ export function SceneToolbar({
       >
         Heatmap
       </Button>
+      <label className="text-xs text-slate-600">
+        <span className="sr-only">Heatmap metric</span>
+        <select
+          className="h-7 rounded-lg border border-slate-200 bg-white px-2 text-xs"
+          value={view.heatmapMode}
+          disabled={!view.heatmapEnabled || modes.length === 0}
+          onChange={(event) =>
+            dispatch({ type: "set-heatmap-mode", mode: event.target.value as HeatmapMode })
+          }
+        >
+          {modes.map((mode) => (
+            <option key={mode} value={mode}>
+              {HEATMAP_MODE_LABEL[mode]}
+            </option>
+          ))}
+        </select>
+      </label>
     </div>
   );
 }

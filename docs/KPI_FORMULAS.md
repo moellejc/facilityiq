@@ -1,6 +1,6 @@
 # FacilityIQ KPI formulas
 
-These formulas live in `src/lib/analytics/kpis.ts`. Phase 3 will call them from metric services. The dashboard does not display their results yet.
+These formulas live in `src/lib/analytics/kpis.ts` and are applied to stored rows by `src/lib/analytics/aggregate.ts`.
 
 A result is either a measured `value` or `value: null` with `unavailableReason`:
 
@@ -70,6 +70,19 @@ Facility-level maintenance in the seed is building overhead only. Conveyor maint
 - **Empty period:** the observation list is empty
 - **Measured zero:** observations exist and none exceed the threshold
 - **Non-finite severity:** ignored, not treated as a bottleneck
+
+## Phase 3 aggregation rules
+
+- Facility throughput, units, cycle time, and facility downtime use rows where both `area_id` and `asset_id` are null. Asset-level orders are not added on top of the facility total.
+- A metric with no stored rows is null. It is not coerced to 0. `units_processed`, downtime, and category costs use `empty_period` when that series is absent. Throughput and cost per order use `missing_inputs` when orders or hours are absent, and `zero_denominator` when the stored denominator is 0.
+- Days in the orders-per-day denominator are distinct dates that have a facility `orders_processed` row. A stored zero still counts. A calendar day with no row is outside the denominator.
+- Asset utilization is the mean of `utilization` samples with an `asset_id`. Area utilization uses samples with an `area_id` and no `asset_id`.
+- Capacity utilization is packing-station `busy_minutes` / `available_minutes`. If either series is missing, the result is unavailable.
+- Bottleneck count uses the maximum `bottleneck_severity` sample per asset or area. The mean severity KPI averages every stored severity sample.
+- Operating cost is the sum of every `financial_metrics` row in the window. Facility maintenance in the seed is building overhead only; conveyor maintenance is stored on the asset and is included once. A cost category, area, or asset with no rows is omitted, not shown as 0. Rows with no area are labeled Facility-wide.
+- The previous period is the immediately preceding window of the same number of inclusive days. If either side is unavailable, the delta is null.
+- The default range is the latest stored sample date and the 29 days before it. Date controls change this range.
+- Heatmap utilization uses the thresholds above. Bottleneck severity uses green at or below 0.40, amber through 0.70, and red above 0.70. Throughput and operating cost are split across the observed min and max; a missing sample is not colored. Equal observed values stay amber rather than being treated as zero.
 
 ## What an LLM must not do
 

@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 
+import type { AnalyticsModel } from "@/lib/analytics/aggregate";
 import type { FacilityScene } from "@/lib/twin/types";
 
 const FacilityCanvas = dynamic(
@@ -28,6 +29,12 @@ const FacilityCanvas = dynamic(
   },
 );
 
-export function TwinLoader({ scene }: { scene: FacilityScene }) {
-  return <FacilityCanvas scene={scene} />;
+export function TwinLoader({
+  scene,
+  heatmap,
+}: {
+  scene: FacilityScene;
+  heatmap: AnalyticsModel["heatmap"] | null;
+}) {
+  return <FacilityCanvas scene={scene} heatmap={heatmap} />;
 }

@@ -2,8 +2,8 @@
 
 import { SELECTED_COLOR } from "@/lib/twin/procedural";
 
-export function PackingStation({ selected }: { selected: boolean }) {
-  const top = selected ? SELECTED_COLOR : "#4f46e5";
+export function PackingStation({ selected, tint }: { selected: boolean; tint?: string | null }) {
+  const top = selected ? SELECTED_COLOR : (tint ?? "#4f46e5");
   return (
     <group>
       <mesh position={[0, 0.92, 0]} castShadow>

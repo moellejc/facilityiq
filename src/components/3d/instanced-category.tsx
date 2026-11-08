@@ -15,6 +15,7 @@ export function InstancedCategory({
   color,
   selectedId,
   castShadow = false,
+  colorFor,
   onSelect,
   onHover,
 }: {
@@ -23,6 +24,7 @@ export function InstancedCategory({
   color: string;
   selectedId: string | null;
   castShadow?: boolean;
+  colorFor?: (id: string) => string | null;
   onSelect: (id: string) => void;
   onHover: (id: string | null) => void;
 }) {
@@ -56,11 +58,15 @@ export function InstancedCategory({
       dummy.scale.set(1, 1, 1);
       dummy.updateMatrix();
       mesh.setMatrixAt(index, dummy.matrix);
-      mesh.setColorAt(index, asset.id === selectedId ? selectedColor : base);
+      const heat = colorFor?.(asset.id);
+      mesh.setColorAt(
+        index,
+        asset.id === selectedId ? selectedColor : heat ? new Color(heat) : base,
+      );
     });
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-  }, [assets, color, selectedId, size.height]);
+  }, [assets, color, colorFor, selectedId, size.height]);
 
   if (assets.length === 0) return null;
 

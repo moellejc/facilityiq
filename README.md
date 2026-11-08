@@ -59,7 +59,7 @@ pnpm db:seed
 pnpm dev
 ```
 
-Open [http://localhost:43123](http://localhost:43123) and sign in with a demo account. Then open Facilities → 3D Digital Twin. The warehouse is placed from the seeded layout and asset rows. Layout editing stays on Facilities → Layouts and does not change data in this phase.
+Open [http://localhost:43123](http://localhost:43123) and sign in with a demo account. The dashboard calculates throughput, utilization, cost, and bottleneck counts from stored metrics. Change the From and To dates and choose Apply. Open Facilities → 3D Digital Twin and turn on Heatmap to color objects that have a sample for the selected range. Layout editing stays on Facilities → Layouts and does not change data.
 
 `pnpm db:migrate` creates the restricted roles `facilityiq_app` and `facilityiq_worker` with the local passwords in `.env.example`. The Next.js app should use `DATABASE_URL` (the app role) so row-level security applies. Migrations and the seed use `DATABASE_MIGRATE_URL` (the superuser) because seeding an organization and bypassing RLS for the load requires it.
 

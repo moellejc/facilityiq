@@ -1,13 +1,28 @@
-import { ComingNext } from "@/components/dashboard/coming-next";
+import { FacilityAnalytics } from "@/components/dashboard/facility-analytics";
+import { PageIntro } from "@/components/dashboard/coming-next";
+import { requireRequestContext } from "@/server/services/context";
 
 export const dynamic = "force-dynamic";
 
-export default function ThroughputPage() {
+export default async function ThroughputPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string }>;
+}) {
+  const context = await requireRequestContext();
+  const query = await searchParams;
   return (
-    <ComingNext
-      title="Throughput"
-      phase="Phase 3"
-      description="Orders per hour and orders per day will be calculated from operational_metrics. The formula helpers exist and are tested; this screen does not display a number yet."
-    />
+    <div>
+      <PageIntro
+        title="Throughput"
+        description="Orders per hour, orders per day, and units processed from facility-level samples."
+      />
+      <FacilityAnalytics
+        context={context}
+        query={query}
+        pathname="/operations/throughput"
+        focus="throughput"
+      />
+    </div>
   );
 }

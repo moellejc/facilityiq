@@ -7,11 +7,13 @@ import type { SceneAsset } from "@/lib/twin/types";
 export function StorageRack({
   assets,
   selectedId,
+  colorFor,
   onSelect,
   onHover,
 }: {
   assets: SceneAsset[];
   selectedId: string | null;
+  colorFor?: (id: string) => string | null;
   onSelect: (id: string) => void;
   onHover: (id: string | null) => void;
 }) {
@@ -21,6 +23,7 @@ export function StorageRack({
       size={PROCEDURAL_SIZE.storage_rack}
       color={CATEGORY_COLOR.storage_rack}
       selectedId={selectedId}
+      colorFor={colorFor}
       castShadow
       onSelect={onSelect}
       onHover={onHover}

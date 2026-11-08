@@ -3,7 +3,13 @@
 import { ASSET_TYPE_LABELS } from "@/lib/format";
 import type { SceneAsset } from "@/lib/twin/types";
 
-export function AssetTooltip({ asset }: { asset: SceneAsset | null }) {
+export function AssetTooltip({
+  asset,
+  metric,
+}: {
+  asset: SceneAsset | null;
+  metric?: string | null;
+}) {
   if (!asset) return null;
   return (
     <div className="pointer-events-none absolute top-3 left-3 rounded-md bg-slate-950/90 px-2.5 py-1.5 text-xs text-white shadow-sm">
@@ -12,6 +18,7 @@ export function AssetTooltip({ asset }: { asset: SceneAsset | null }) {
         {" "}
         · {ASSET_TYPE_LABELS[asset.assetType] ?? asset.assetType}
       </span>
+      {metric ? <span className="block text-slate-200">{metric}</span> : null}
     </div>
   );
 }

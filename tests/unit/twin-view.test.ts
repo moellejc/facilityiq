@@ -62,6 +62,7 @@ describe("twin view state", () => {
         "cameraResetToken",
         "focusToken",
         "heatmapEnabled",
+        "heatmapMode",
         "hiddenCategories",
         "hoverId",
         "projection",

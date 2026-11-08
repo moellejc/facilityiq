@@ -7,11 +7,13 @@ import type { SceneAsset } from "@/lib/twin/types";
 export function Pallet({
   assets,
   selectedId,
+  colorFor,
   onSelect,
   onHover,
 }: {
   assets: SceneAsset[];
   selectedId: string | null;
+  colorFor?: (id: string) => string | null;
   onSelect: (id: string) => void;
   onHover: (id: string | null) => void;
 }) {
@@ -21,6 +23,7 @@ export function Pallet({
       size={PROCEDURAL_SIZE.pallet}
       color={CATEGORY_COLOR.pallet}
       selectedId={selectedId}
+      colorFor={colorFor}
       onSelect={onSelect}
       onHover={onHover}
     />

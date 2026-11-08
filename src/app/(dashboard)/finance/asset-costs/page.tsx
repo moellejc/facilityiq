@@ -1,13 +1,28 @@
-import { ComingNext } from "@/components/dashboard/coming-next";
+import { FacilityAnalytics } from "@/components/dashboard/facility-analytics";
+import { PageIntro } from "@/components/dashboard/coming-next";
+import { requireRequestContext } from "@/server/services/context";
 
 export const dynamic = "force-dynamic";
 
-export default function AssetCostsPage() {
+export default async function AssetCostsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string }>;
+}) {
+  const context = await requireRequestContext();
+  const query = await searchParams;
   return (
-    <ComingNext
-      title="Asset costs"
-      phase="Phase 3"
-      description="Asset-level maintenance, including the rising conveyor series, will be charted from stored amounts. Estimates stay labeled as estimates."
-    />
+    <div>
+      <PageIntro
+        title="Asset costs"
+        description="Only assets with stored cost rows appear. Missing cost is not shown as zero."
+      />
+      <FacilityAnalytics
+        context={context}
+        query={query}
+        pathname="/finance/asset-costs"
+        focus="asset-costs"
+      />
+    </div>
   );
 }

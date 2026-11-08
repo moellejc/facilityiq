@@ -10,6 +10,8 @@ import { PackingStation } from "@/components/3d/PackingStation";
 import { Pallet } from "@/components/3d/Pallet";
 import { StorageRack } from "@/components/3d/StorageRack";
 import { WarehouseFloor } from "@/components/3d/WarehouseFloor";
+import { heatmapColor } from "@/lib/analytics/heatmap";
+import type { AnalyticsModel } from "@/lib/analytics/aggregate";
 import { partitionAssets } from "@/lib/twin/scene";
 import type { FacilityScene, SceneVector } from "@/lib/twin/types";
 import { isCategoryVisible, type TwinViewState } from "@/lib/twin/view-state";
@@ -18,6 +20,7 @@ export function WarehouseScene({
   scene,
   view,
   focusTarget,
+  heatmap,
   onSelectAsset,
   onSelectArea,
   onHover,
@@ -25,6 +28,7 @@ export function WarehouseScene({
   scene: FacilityScene;
   view: TwinViewState;
   focusTarget: SceneVector | null;
+  heatmap: AnalyticsModel["heatmap"] | null;
   onSelectAsset: (id: string) => void;
   onSelectArea: (id: string) => void;
   onHover: (id: string | null) => void;
@@ -33,6 +37,15 @@ export function WarehouseScene({
   const grouped = partitionAssets(visible);
   const selectedAssetId = view.selection?.kind === "asset" ? view.selection.id : null;
   const selectedAreaId = view.selection?.kind === "area" ? view.selection.id : null;
+  const colorFor = (id: string, kind: "asset" | "area") => {
+    if (!view.heatmapEnabled || !heatmap || !heatmap.modes.includes(view.heatmapMode)) return null;
+    const values = kind === "asset" ? heatmap.assets[id] : heatmap.areas[id];
+    return heatmapColor(
+      view.heatmapMode,
+      values?.[view.heatmapMode],
+      heatmap.scales[view.heatmapMode] ?? null,
+    );
+  };
 
   return (
     <>
@@ -60,39 +73,48 @@ export function WarehouseScene({
             area={area}
             selected={area.id === selectedAreaId}
             showLabel={view.showLabels}
+            tint={colorFor(area.id, "area")}
             onSelect={onSelectArea}
           />
         ))}
         <StorageRack
           assets={grouped.storage_rack}
           selectedId={selectedAssetId}
+          colorFor={(id) => colorFor(id, "asset")}
           onSelect={onSelectAsset}
           onHover={onHover}
         />
         <Pallet
           assets={grouped.pallet}
           selectedId={selectedAssetId}
+          colorFor={(id) => colorFor(id, "asset")}
           onSelect={onSelectAsset}
           onHover={onHover}
         />
         {grouped.loading_dock.map((asset) => (
           <AssetMesh key={asset.id} asset={asset} onSelect={onSelectAsset} onHover={onHover}>
-            <LoadingDock selected={asset.id === selectedAssetId} />
+            <LoadingDock
+              selected={asset.id === selectedAssetId}
+              tint={colorFor(asset.id, "asset")}
+            />
           </AssetMesh>
         ))}
         {grouped.packing_station.map((asset) => (
           <AssetMesh key={asset.id} asset={asset} onSelect={onSelectAsset} onHover={onHover}>
-            <PackingStation selected={asset.id === selectedAssetId} />
+            <PackingStation
+              selected={asset.id === selectedAssetId}
+              tint={colorFor(asset.id, "asset")}
+            />
           </AssetMesh>
         ))}
         {grouped.conveyor.map((asset) => (
           <AssetMesh key={asset.id} asset={asset} onSelect={onSelectAsset} onHover={onHover}>
-            <Conveyor selected={asset.id === selectedAssetId} />
+            <Conveyor selected={asset.id === selectedAssetId} tint={colorFor(asset.id, "asset")} />
           </AssetMesh>
         ))}
         {grouped.forklift.map((asset) => (
           <AssetMesh key={asset.id} asset={asset} onSelect={onSelectAsset} onHover={onHover}>
-            <Forklift selected={asset.id === selectedAssetId} />
+            <Forklift selected={asset.id === selectedAssetId} tint={colorFor(asset.id, "asset")} />
           </AssetMesh>
         ))}
       </group>

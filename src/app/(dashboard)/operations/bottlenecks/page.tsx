@@ -1,13 +1,28 @@
-import { ComingNext } from "@/components/dashboard/coming-next";
+import { FacilityAnalytics } from "@/components/dashboard/facility-analytics";
+import { PageIntro } from "@/components/dashboard/coming-next";
+import { requireRequestContext } from "@/server/services/context";
 
 export const dynamic = "force-dynamic";
 
-export default function BottlenecksPage() {
+export default async function BottlenecksPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string }>;
+}) {
+  const context = await requireRequestContext();
+  const query = await searchParams;
   return (
-    <ComingNext
-      title="Bottlenecks"
-      phase="Phase 3"
-      description="Bottleneck count uses severity above 0.70. The seeded aisle and packing station already carry that signal in the database."
-    />
+    <div>
+      <PageIntro
+        title="Bottlenecks"
+        description="Count and mean severity from stored bottleneck samples, plus facility downtime."
+      />
+      <FacilityAnalytics
+        context={context}
+        query={query}
+        pathname="/operations/bottlenecks"
+        focus="bottlenecks"
+      />
+    </div>
   );
 }
