@@ -141,7 +141,7 @@ Raw series live in `operational_metrics` and `financial_metrics` (`metric_type` 
 
 **Insights (Phase 4):** `InsightsProvider` in `src/lib/ai/provider.ts`. Default `DeterministicRulesProvider` always works without an API key and surfaces the seeded problems from calculated metrics. Optional language enrichment behind `AI_API_KEY` (`src/lib/ai/llm-language.ts`) may only rephrase text after Zod validation. Persistence is `generateFacilityInsights` → `replaceDeterministicInsights`. Model output cannot execute mutations. The insights page links to `/facilities/twin?select=asset:<id>` or `select=area:<id>`. Estimated savings stay labeled estimates.
 
-**Scenarios (Phase 5):** Deterministic projections from transparent formulas (add packing station, increase conveyor capacity, extend hours, reassign equipment, increase staffing, reduce downtime). Store configuration and results. UI must separate baseline (observed) from projected. Support save, duplicate, compare, and delete.
+**Scenarios (Phase 5):** Deterministic projections in `src/lib/scenarios` (see `docs/SCENARIOS.md`). APIs cover save, run, duplicate, compare, and delete. Baseline blocks are `observed`; projected dollars are labeled modeled estimates. The `/scenarios` page is a read-only summary; the full editor UI is deferred.
 
 ## 10. Files and worker
 

@@ -823,14 +823,24 @@ export async function seedDatabase() {
           status: "active" as const,
           configuration: {
             kind: "add_packing_station",
-            parameters: { additionalStations: 1, referenceAsset: "PS-02" },
-            phase: "seeded",
+            parameters: {
+              additionalStations: 1,
+              referenceAssetId: assetId("PS-02"),
+              modeledMonthlyCostPerStation: 4200,
+              modeledInvestment: 85000,
+            },
           },
-          baseline: { ordersPerDay: 840, stationUtilization: 97.5, bottleneckSeverity: 0.86 },
-          projected: { ordersPerDay: 980, stationUtilization: 74, bottleneckSeverity: 0.34 },
-          savings: "24200.00",
+          baseline: {
+            basis: "observed",
+            note: "Replaced when the scenario is run against stored metrics.",
+          },
+          projected: {
+            basis: "modeled",
+            note: "Replaced when the scenario is run. Seed placeholder only.",
+          },
+          savings: null as string | null,
           assumptions:
-            "Projection assumes the new station matches PS-01 throughput and that demand stays at the seeded weekday level. This is not an observed result.",
+            "Run the scenario to replace this seed placeholder with calculated baseline and modeled projection.",
         },
         {
           key: "reassign-forklifts",
@@ -839,14 +849,23 @@ export async function seedDatabase() {
           status: "active" as const,
           configuration: {
             kind: "reassign_equipment",
-            parameters: { assets: ["FL-04", "FL-05"], destinationArea: "Shipping" },
-            phase: "seeded",
+            parameters: {
+              assetIds: [assetId("FL-04"), assetId("FL-05")],
+              destinationAreaId: areaId("shipping"),
+              modeledCostPerDwellMinute: 2.5,
+            },
           },
-          baseline: { forkliftUtilization: 14, dockDwellMinutes: 70 },
-          projected: { forkliftUtilization: 48, dockDwellMinutes: 42 },
-          savings: "6400.00",
+          baseline: {
+            basis: "observed",
+            note: "Replaced when the scenario is run against stored metrics.",
+          },
+          projected: {
+            basis: "modeled",
+            note: "Replaced when the scenario is run. Seed placeholder only.",
+          },
+          savings: null as string | null,
           assumptions:
-            "Projection assumes two hours of dock work per truck per weekday. Modeled only — not measured after a change.",
+            "Run the scenario to replace this seed placeholder with calculated baseline and modeled projection.",
         },
         {
           key: "conveyor-repair",
@@ -855,14 +874,23 @@ export async function seedDatabase() {
           status: "draft" as const,
           configuration: {
             kind: "reduce_downtime",
-            parameters: { asset: "CV-02", targetDowntimeMinutes: 12 },
-            phase: "seeded",
+            parameters: {
+              assetId: assetId("CV-02"),
+              targetDowntimeMinutesPerDay: 12,
+              modeledRepairCost: 4800,
+            },
           },
-          baseline: { dailyMaintenance: 240, downtimeMinutes: 63.5 },
-          projected: { dailyMaintenance: 55, downtimeMinutes: 12 },
-          savings: "4800.00",
+          baseline: {
+            basis: "observed",
+            note: "Replaced when the scenario is run against stored metrics.",
+          },
+          projected: {
+            basis: "modeled",
+            note: "Replaced when the scenario is run. Seed placeholder only.",
+          },
+          savings: null as string | null,
           assumptions:
-            "Savings compare the last seeded day with a return to the other conveyors' maintenance level. The figure is an estimate.",
+            "Run the scenario to replace this seed placeholder with calculated baseline and modeled projection.",
         },
       ];
 
