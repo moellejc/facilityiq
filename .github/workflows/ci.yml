@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: facilityiq
+          POSTGRES_PASSWORD: facilityiq_dev
+          POSTGRES_DB: facilityiq_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U facilityiq -d facilityiq_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgres://facilityiq:facilityiq_dev@localhost:5432/facilityiq_test
+      DATABASE_MIGRATE_URL: postgres://facilityiq:facilityiq_dev@localhost:5432/facilityiq_test
+      DATABASE_URL_TEST: postgres://facilityiq:facilityiq_dev@localhost:5432/facilityiq_test
+      AUTH_SECRET: ci-test-secret-not-for-production
+      AUTH_URL: http://localhost:43123
+      S3_ENDPOINT: http://127.0.0.1:9000
+      S3_REGION: us-east-1
+      S3_BUCKET: facilityiq-models
+      S3_ACCESS_KEY_ID: facilityiq
+      S3_SECRET_ACCESS_KEY: facilityiq-dev-secret
+      S3_FORCE_PATH_STYLE: "true"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Enable pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check formatting
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test:unit
+
+      - name: Apply migrations
+        run: pnpm db:migrate
+
+      - name: Integration tests
+        run: pnpm test:integration
+
+      - name: Build Next.js
+        run: pnpm build
+
+      - name: Playwright smoke
+        run: |
+          if find tests/e2e -name '*.spec.ts' -print -quit | grep -q .; then
+            pnpm exec playwright test
+          else
+            echo "No Playwright specs yet. Skipping smoke."
+          fi

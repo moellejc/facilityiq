@@ -1,0 +1,86 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      deploy_production:
+        description: Explicitly request a production deployment. This does not deploy by itself.
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+
+  image:
+    needs: checks
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build production image
+        run: docker build --target runner --tag facilityiq:ci .
+
+      - name: Scan dependencies
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.33.4 --activate
+          pnpm install --frozen-lockfile
+          pnpm audit --audit-level=high || true
+
+      - name: Scan image
+        uses: aquasecurity/trivy-action@v0.28.0
+        with:
+          image-ref: facilityiq:ci
+          format: table
+          exit-code: "0"
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
+
+      - name: Publish to GHCR
+        if: vars.ENABLE_GHCR_PUBLISH == 'true'
+        env:
+          REGISTRY: ghcr.io
+          IMAGE_NAME: ${{ github.repository }}
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login "$REGISTRY" -u "${{ github.actor }}" --password-stdin
+          docker tag facilityiq:ci "$REGISTRY/$IMAGE_NAME:${{ github.sha }}"
+          docker push "$REGISTRY/$IMAGE_NAME:${{ github.sha }}"
+
+  staging:
+    needs: image
+    if: vars.STAGING_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Staging deploy hook
+        run: |
+          echo "Staging deploy is enabled, but no hosting target is configured in this repository."
+          echo "This workflow does not deploy to production."
+
+  production:
+    needs: image
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy_production == true
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Production target is not configured
+        run: |
+          echo "Production deployment was requested explicitly."
+          echo "No production host, approval automation, or deploy script is configured."
+          echo "Refusing to deploy."
+          exit 1

@@ -1,0 +1,76 @@
+# FacilityIQ KPI formulas
+
+These formulas live in `src/lib/analytics/kpis.ts`. Phase 3 will call them from metric services. The dashboard does not display their results yet.
+
+A result is either a measured `value` or `value: null` with `unavailableReason`:
+
+| Reason             | Meaning                                                                                          |
+| ------------------ | ------------------------------------------------------------------------------------------------ |
+| `missing_inputs`   | A required input is null, undefined, not finite, or negative. Checked before a zero denominator. |
+| `zero_denominator` | The denominator is exactly zero. Do not render this as `0`.                                      |
+| `empty_period`     | The period has no usable observations. Do not render this as `0`.                                |
+
+A numerator of zero with a positive denominator is a real zero.
+
+Currency is USD. Timestamps are UTC. The bottleneck warning threshold is **0.70** on a 0–1 severity scale (`BOTTLENECK_WARNING_THRESHOLD`).
+
+## Throughput (orders/hour)
+
+- **Formula:** orders in period / hours in period
+- **Numerator:** sum of `orders_processed`
+- **Denominator:** sum of `operating_hours`, or the clock hours the facility was open
+- **Unit:** `orders/hour`
+- **Aggregation:** sum, then divide. Do not average daily rates unless every day has the same hours.
+- **Zero denominator:** `unavailableReason = zero_denominator`
+- **Missing orders or hours:** `missing_inputs`
+
+## Throughput (orders/day)
+
+- **Formula:** orders in period / days in period
+- **Numerator:** sum of `orders_processed`
+- **Denominator:** number of days in the selected period that are in scope. A day with a stored zero is still a day.
+- **Unit:** `orders/day`
+- **Zero denominator:** no days in the period
+- **Missing inputs:** orders or day count missing
+
+## Utilization percent
+
+- **Formula:** busy time / available time × 100
+- **Numerator:** `busy_minutes` (or equivalent busy time)
+- **Denominator:** `available_minutes`
+- **Unit:** `percent`
+- **Zero denominator:** available time is 0
+- **Stored samples:** `utilizationFromSamples` averages finite `utilization` samples that are already in percent. Null samples are ignored. If none remain, the reason is `empty_period`, not 0%.
+
+Seeded equipment stores both the percent and, for forklifts and packing stations, busy and available minutes that match that percent for the day's operating hours (16 weekday, 8 weekend).
+
+## Cost per order
+
+- **Formula:** operating cost in period / orders in period
+- **Numerator:** sum of `financial_metrics.amount` for the operating categories in scope (labor, maintenance, energy, equipment, overhead)
+- **Denominator:** orders in the same period
+- **Unit:** `currency/order`
+- **Zero denominator:** orders are 0
+- **Aggregation:** sum money in the database, then divide. Do not average daily cost-per-order figures.
+
+Facility-level maintenance in the seed is building overhead only. Conveyor maintenance is stored on the asset. Include each scope once.
+
+## Average cycle time
+
+- **Formula:** mean of `cycle_time_minutes` samples in the period
+- **Unit:** `minutes`
+- **Aggregation:** arithmetic mean of finite samples ≥ 0. Nulls are dropped.
+- **Empty period:** no usable samples
+
+## Bottleneck count
+
+- **Formula:** count of distinct asset or area ids whose bottleneck severity is **strictly greater** than 0.70 in the period
+- **Unit:** `count`
+- **Aggregation:** distinct ids. Repeated samples for the same id count once.
+- **Empty period:** the observation list is empty
+- **Measured zero:** observations exist and none exceed the threshold
+- **Non-finite severity:** ignored, not treated as a bottleneck
+
+## What an LLM must not do
+
+Financial and operational KPIs are never computed by a model. A later insights provider may only rephrase evidence that these functions, or SQL using the same rules, already produced. Estimated savings on seeded insights and scenarios are labeled modeled figures in `evidence` / `assumptions`. They are not verified savings.
