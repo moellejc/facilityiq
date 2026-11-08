@@ -1,7 +1,9 @@
 import { DateRangeControls } from "@/components/dashboard/date-range-controls";
 import { TwinLoader } from "@/components/facilities/twin-loader";
+import { parseTwinSelection } from "@/lib/ai/match";
 import { analyticsPresets, getFacilityAnalytics } from "@/server/services/analytics-service";
 import { requireRequestContext } from "@/server/services/context";
+import { listInsightsForFacility } from "@/server/services/insight-service";
 import { getFacilityScene } from "@/server/services/scene-service";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function TwinPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; select?: string }>;
 }) {
   const context = await requireRequestContext();
   const query = await searchParams;
@@ -30,6 +32,13 @@ export default async function TwinPage({
     role: context.role,
     query,
   });
+  const insights = await listInsightsForFacility({
+    organizationId: context.organizationId,
+    userId: context.userId,
+    facilityId: context.facilityId,
+    role: context.role,
+  });
+  const initialSelection = parseTwinSelection(query.select);
 
   return (
     <div>
@@ -47,8 +56,14 @@ export default async function TwinPage({
         to={analytics.range.to}
         freshness={analytics.freshness}
         presets={analyticsPresets(analytics.freshness)}
+        preserve={query.select ? { select: query.select } : undefined}
       />
-      <TwinLoader scene={scene} heatmap={analytics.heatmap} />
+      <TwinLoader
+        scene={scene}
+        heatmap={analytics.heatmap}
+        insights={insights}
+        initialSelection={initialSelection}
+      />
     </div>
   );
 }

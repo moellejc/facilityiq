@@ -1,6 +1,6 @@
 # FacilityIQ
 
-Multi-tenant facility operations and cost intelligence for Acme Manufacturing. Signed-in users can explore the seeded West Distribution Center as a procedural 3D model built from the stored layout and assets. KPI charts, insight rules, and the scenario engine are later phases. Pages that are not ready say so. They do not invent performance numbers.
+Multi-tenant facility operations and cost intelligence for Acme Manufacturing. Signed-in users can explore the seeded West Distribution Center as a procedural 3D model built from the stored layout and assets. KPI charts and insight rules are calculated from stored metrics. The scenario editor is a later phase. Pages that are not ready say so. They do not invent performance numbers.
 
 No GitHub repository was created by this setup. The workflows in `.github/workflows` are ready for a repository named `facilityiq`.
 
@@ -60,6 +60,8 @@ pnpm dev
 ```
 
 Open [http://localhost:43123](http://localhost:43123) and sign in with a demo account. The dashboard calculates throughput, utilization, cost, and bottleneck counts from stored metrics. Change the From and To dates and choose Apply. Open Facilities → 3D Digital Twin and turn on Heatmap to color objects that have a sample for the selected range. Layout editing stays on Facilities → Layouts and does not change data.
+
+Insights are under Insights. An administrator or operations manager regenerates them from the selected period. Finance managers and viewers can read the stored rows. With no `AI_API_KEY`, only the deterministic rules run. A rule that can calculate a maintenance excess labels it as an estimate. Open “Show in the 3D twin” on an insight, or use `/facilities/twin?select=asset:<asset-id>&from=2026-10-03&to=2026-11-01` (or `select=area:<area-id>`). The twin selects that object and lists related insights in the side panel. Selecting an object in the twin does the same.
 
 `pnpm db:migrate` creates the restricted roles `facilityiq_app` and `facilityiq_worker` with the local passwords in `.env.example`. The Next.js app should use `DATABASE_URL` (the app role) so row-level security applies. Migrations and the seed use `DATABASE_MIGRATE_URL` (the superuser) because seeding an organization and bypassing RLS for the load requires it.
 

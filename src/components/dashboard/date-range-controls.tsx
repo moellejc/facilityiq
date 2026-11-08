@@ -8,12 +8,14 @@ export function DateRangeControls({
   to,
   freshness,
   presets,
+  preserve,
 }: {
   pathname: string;
   from: string;
   to: string;
   freshness: string | null;
   presets: Array<{ label: string; from: string; to: string }>;
+  preserve?: Record<string, string>;
 }) {
   return (
     <div className="mb-4 flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm lg:flex-row lg:items-end lg:justify-between">
@@ -38,6 +40,9 @@ export function DateRangeControls({
             required
           />
         </label>
+        {Object.entries(preserve ?? {}).map(([name, value]) => (
+          <input key={name} type="hidden" name={name} value={value} />
+        ))}
         <Button type="submit" size="sm">
           Apply
         </Button>
@@ -46,7 +51,7 @@ export function DateRangeControls({
         {presets.map((preset) => (
           <Link
             key={preset.label}
-            href={`${pathname}?from=${preset.from}&to=${preset.to}`}
+            href={presetHref(pathname, preset, preserve)}
             className="rounded-full border border-slate-200 px-3 py-1 text-slate-700 hover:border-indigo-300"
           >
             {preset.label}
@@ -58,4 +63,13 @@ export function DateRangeControls({
       </div>
     </div>
   );
+}
+
+function presetHref(
+  pathname: string,
+  preset: { from: string; to: string },
+  preserve?: Record<string, string>,
+) {
+  const params = new URLSearchParams({ from: preset.from, to: preset.to, ...preserve });
+  return `${pathname}?${params.toString()}`;
 }

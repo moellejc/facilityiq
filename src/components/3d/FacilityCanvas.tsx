@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useReducer } from "react";
+import { useEffect, useMemo, useReducer } from "react";
 import { Canvas } from "@react-three/fiber";
 
 import { AssetTooltip } from "@/components/3d/AssetTooltip";
@@ -11,18 +11,35 @@ import { SelectionPanel } from "@/components/facilities/selection-panel";
 import { formatMeasure, unitSuffix } from "@/lib/analytics/display";
 import { heatmapUnit } from "@/lib/analytics/heatmap";
 import type { AnalyticsModel, HeatmapMode } from "@/lib/analytics/aggregate";
+import type { InsightMatch } from "@/lib/ai/match";
 import { findAsset, focusPoint } from "@/lib/twin/scene";
-import type { FacilityScene } from "@/lib/twin/types";
+import type { FacilityScene, TwinSelection } from "@/lib/twin/types";
 import { initialTwinViewState, twinViewReducer } from "@/lib/twin/view-state";
 
 export function FacilityCanvas({
   scene,
   heatmap,
+  insights = [],
+  initialSelection = null,
 }: {
   scene: FacilityScene;
   heatmap: AnalyticsModel["heatmap"] | null;
+  insights?: InsightMatch[];
+  initialSelection?: TwinSelection;
 }) {
-  const [view, dispatch] = useReducer(twinViewReducer, initialTwinViewState);
+  const [view, dispatch] = useReducer(twinViewReducer, {
+    ...initialTwinViewState,
+    selection: initialSelection,
+  });
+  useEffect(() => {
+    if (!initialSelection) return;
+    if (initialSelection.kind === "asset") {
+      dispatch({ type: "select-asset", id: initialSelection.id });
+    } else {
+      dispatch({ type: "select-area", id: initialSelection.id });
+    }
+    dispatch({ type: "focus-selected" });
+  }, [initialSelection]);
   const focusTarget = useMemo(() => focusPoint(scene, view.selection), [scene, view.selection]);
   const hovered = view.hoverId ? findAsset(scene, view.hoverId) : null;
   const hoveredMetric = hovered ? heatmapCaption(heatmap, view, hovered.id, "asset") : null;
@@ -60,7 +77,7 @@ export function FacilityCanvas({
           {scene.assets.length} assets from the facility record
         </p>
       </div>
-      <SelectionPanel scene={scene} selection={view.selection} />
+      <SelectionPanel scene={scene} selection={view.selection} insights={insights} />
     </div>
   );
 }

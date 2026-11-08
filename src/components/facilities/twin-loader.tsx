@@ -2,8 +2,9 @@
 
 import dynamic from "next/dynamic";
 
+import type { InsightMatch } from "@/lib/ai/match";
 import type { AnalyticsModel } from "@/lib/analytics/aggregate";
-import type { FacilityScene } from "@/lib/twin/types";
+import type { FacilityScene, TwinSelection } from "@/lib/twin/types";
 
 const FacilityCanvas = dynamic(
   () =>
@@ -32,9 +33,20 @@ const FacilityCanvas = dynamic(
 export function TwinLoader({
   scene,
   heatmap,
+  insights = [],
+  initialSelection = null,
 }: {
   scene: FacilityScene;
   heatmap: AnalyticsModel["heatmap"] | null;
+  insights?: InsightMatch[];
+  initialSelection?: TwinSelection;
 }) {
-  return <FacilityCanvas scene={scene} heatmap={heatmap} />;
+  return (
+    <FacilityCanvas
+      scene={scene}
+      heatmap={heatmap}
+      insights={insights}
+      initialSelection={initialSelection}
+    />
+  );
 }

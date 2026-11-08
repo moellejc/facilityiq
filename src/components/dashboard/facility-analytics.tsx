@@ -12,6 +12,7 @@ import {
   type AnalyticsQuery,
 } from "@/server/services/analytics-service";
 import type { RequestContext } from "@/server/services/context";
+import { twinSelectionHref } from "@/lib/ai/match";
 import { listInsights } from "@/server/repositories/records";
 
 export async function FacilityAnalytics({
@@ -231,13 +232,17 @@ export async function FacilityAnalytics({
           <CardHeader>
             <CardTitle>Stored insights</CardTitle>
             <CardDescription>
-              {insights.total} open or saved insight rows. Generation is a later phase.
+              {insights.total} stored insight rows for this facility. Open the list to regenerate
+              them from the selected period. Dollar figures are estimates when the rule can
+              calculate one.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             {insights.data.slice(0, 5).map((insight) => (
               <p key={insight.id}>
-                <span className="font-medium text-slate-900">{insight.title}</span>
+                <Link href={twinSelectionHref(insight)} className="font-medium text-slate-900">
+                  {insight.title}
+                </Link>
                 <span className="text-slate-500"> · {insight.severity}</span>
               </p>
             ))}

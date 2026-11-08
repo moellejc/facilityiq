@@ -1,3 +1,6 @@
+import Link from "next/link";
+
+import { insightsForSelection, type InsightMatch } from "@/lib/ai/match";
 import { ASSET_TYPE_LABELS, formatUtcDate } from "@/lib/format";
 import { eventsForArea, eventsForAsset, findArea, findAsset } from "@/lib/twin/scene";
 import type { FacilityScene, SceneEvent, SceneSample, TwinSelection } from "@/lib/twin/types";
@@ -5,9 +8,11 @@ import type { FacilityScene, SceneEvent, SceneSample, TwinSelection } from "@/li
 export function SelectionPanel({
   scene,
   selection,
+  insights = [],
 }: {
   scene: FacilityScene;
   selection: TwinSelection;
+  insights?: InsightMatch[];
 }) {
   if (!selection) {
     return (
@@ -45,6 +50,7 @@ export function SelectionPanel({
         <SampleBlock sample={asset.latestUtilization} />
         <MaintenanceBlock events={maintenance} />
         <EventList events={eventsForAsset(scene, asset.id)} />
+        <RelatedInsights insights={insightsForSelection(insights, selection)} />
       </aside>
     );
   }
@@ -64,7 +70,36 @@ export function SelectionPanel({
       </dl>
       <SampleBlock sample={area.latestUtilization} />
       <EventList events={eventsForArea(scene, area.id)} />
+      <RelatedInsights insights={insightsForSelection(insights, selection)} />
     </aside>
+  );
+}
+
+function RelatedInsights({ insights }: { insights: InsightMatch[] }) {
+  return (
+    <div className="mt-4">
+      <p className="text-[11px] tracking-wide text-slate-500 uppercase">Related insights</p>
+      {insights.length === 0 ? (
+        <p className="mt-1 text-sm text-slate-600">No stored insight is linked to this object.</p>
+      ) : (
+        <ul className="mt-2 space-y-2">
+          {insights.map((insight) => (
+            <li key={insight.id} className="text-sm">
+              <p className="font-medium text-slate-900">{insight.title}</p>
+              <p className="text-xs text-slate-500">
+                {insight.severity} · {insight.status}
+                {insight.impactLabel === "estimate" && insight.estimatedFinancialImpact
+                  ? ` · Estimate ${insight.estimatedFinancialImpact} USD`
+                  : ""}
+              </p>
+              <Link href="/insights" className="text-xs font-medium text-indigo-700">
+                Open insights
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 

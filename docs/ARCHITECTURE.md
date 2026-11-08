@@ -139,7 +139,7 @@ Division by zero or an empty period returns `null` with a machine-readable `unav
 
 Raw series live in `operational_metrics` and `financial_metrics` (`metric_type` / `cost_category` enums). Seed 30 days of internally consistent data, including the required problem conditions.
 
-**Insights (Phase 4):** `InsightsProvider` interface. Default `DeterministicRulesProvider` always works without an API key and must surface the seeded problems. Optional LLM provider behind `AI_API_KEY` may only enrich language. Validate outputs with Zod. Persistence goes through the service layer; model output cannot execute mutations. Never present estimated savings as verified facts.
+**Insights (Phase 4):** `InsightsProvider` in `src/lib/ai/provider.ts`. Default `DeterministicRulesProvider` always works without an API key and surfaces the seeded problems from calculated metrics. Optional language enrichment behind `AI_API_KEY` (`src/lib/ai/llm-language.ts`) may only rephrase text after Zod validation. Persistence is `generateFacilityInsights` → `replaceDeterministicInsights`. Model output cannot execute mutations. The insights page links to `/facilities/twin?select=asset:<id>` or `select=area:<id>`. Estimated savings stay labeled estimates.
 
 **Scenarios (Phase 5):** Deterministic projections from transparent formulas (add packing station, increase conveyor capacity, extend hours, reassign equipment, increase staffing, reduce downtime). Store configuration and results. UI must separate baseline (observed) from projected. Support save, duplicate, compare, and delete.
 

@@ -86,4 +86,15 @@ Facility-level maintenance in the seed is building overhead only. Conveyor maint
 
 ## What an LLM must not do
 
-Financial and operational KPIs are never computed by a model. A later insights provider may only rephrase evidence that these functions, or SQL using the same rules, already produced. Estimated savings on seeded insights and scenarios are labeled modeled figures in `evidence` / `assumptions`. They are not verified savings.
+Financial and operational KPIs are never computed by a model. `DeterministicRulesProvider` reads the same stored samples as the dashboard. An optional language model, used only when `AI_API_KEY` is set, may rephrase title, description, and recommended action. Zod rejects any extra field, including a financial estimate. Estimated savings are labeled `estimate` in `evidence.impactLabel`. A null impact is `not_calculable`. Neither is a verified saving.
+
+## Phase 4 insight rules
+
+Rules run on the selected facility and period. They do not copy the planning dollars stored on the original seed rows.
+
+- Excessive aisle utilization: mean area `utilization` (area set, asset empty) above 90%. Impact is not calculable.
+- Packing-station capacity shortfall: mean utilization at least 95% and either orders per day below the peer median or maximum bottleneck severity above 0.70. Impact is not calculable.
+- Underutilized forklifts: mean utilization under 25%. One insight lists every matching forklift. Impact is not calculable.
+- Increasing dock dwell: last `dwell_time_minutes` sample is at least 20 minutes above the first. One insight lists every matching dock. No cost per minute is stored, so impact is not calculable.
+- Rising conveyor maintenance: last asset maintenance sample is at least 1.5 times the first, and the first is positive. The estimate is the sum of stored amounts minus the first amount held flat for the same number of samples. Facility-level maintenance is excluded.
+- A stable area (mean utilization from 45% through 75%, at least 10 samples, and not already excessive) is included so healthy areas stay visible.
