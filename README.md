@@ -1,6 +1,6 @@
 # FacilityIQ
 
-Multi-tenant facility operations and cost intelligence for Acme Manufacturing. This repository is the Phase 1 foundation: authentication, organizations, the full database, a dashboard shell, a background worker, and a deterministic demo seed. The 3D twin, KPI charts, insight rules, and scenario engine are later phases. Pages that are not ready say so. They do not invent performance numbers.
+Multi-tenant facility operations and cost intelligence for Acme Manufacturing. Signed-in users can explore the seeded West Distribution Center as a procedural 3D model built from the stored layout and assets. KPI charts, insight rules, and the scenario engine are later phases. Pages that are not ready say so. They do not invent performance numbers.
 
 No GitHub repository was created by this setup. The workflows in `.github/workflows` are ready for a repository named `facilityiq`.
 
@@ -59,7 +59,7 @@ pnpm db:seed
 pnpm dev
 ```
 
-Open [http://localhost:43123](http://localhost:43123) and sign in with a demo account.
+Open [http://localhost:43123](http://localhost:43123) and sign in with a demo account. Then open Facilities → 3D Digital Twin. The warehouse is placed from the seeded layout and asset rows. Layout editing stays on Facilities → Layouts and does not change data in this phase.
 
 `pnpm db:migrate` creates the restricted roles `facilityiq_app` and `facilityiq_worker` with the local passwords in `.env.example`. The Next.js app should use `DATABASE_URL` (the app role) so row-level security applies. Migrations and the seed use `DATABASE_MIGRATE_URL` (the superuser) because seeding an organization and bypassing RLS for the load requires it.
 

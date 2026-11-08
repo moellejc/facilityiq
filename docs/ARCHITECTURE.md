@@ -238,3 +238,9 @@ These are concrete incompatibilities or practical additions. The rest of this do
 8. **Seed clock is fixed.** Operational and financial history ends on 2026-11-01 UTC (30 days, inclusive). Repeating the seed deletes Acme Manufacturing and inserts the same business keys and values. Password hashes are Argon2id and are not byte-stable; the demo password is.
 
 9. **Financial rows do not double-count conveyor maintenance.** Facility-level maintenance is building overhead ($180/day). CV-01, CV-02, and CV-03 maintenance is stored only on the asset. A later rollup must sum both scopes once each.
+
+## 18. Phase 2 notes
+
+`FacilityCanvas` is still loaded with `next/dynamic` and `{ ssr: false }`. Next.js 16 rejects that call inside a Server Component, so `src/components/facilities/twin-loader.tsx` (a client component) performs the import. The twin page stays a Server Component and passes the org-scoped scene DTO in.
+
+Asset rows have no width or height. Procedural body sizes in `src/lib/twin/procedural.ts` are visual defaults. Positions, rotations, names, status, areas, utilization samples, and events come from PostgreSQL. The heatmap toggle does not recolor objects. Layout editing remains on `/facilities/layouts` and does not write.
