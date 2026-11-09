@@ -1,0 +1,17 @@
+---
+description: FacilityIQ API route handlers are thin adapters using withApi/withFacilityApi and the standard error envelope
+globs: src/app/api/**/route.ts,src/server/http.ts,src/lib/api.ts,src/lib/errors.ts
+alwaysApply: false
+---
+
+# API route handlers
+
+- Wrap with `withApi` or `withFacilityApi(permission, …)` from `src/server/http.ts`; `export const dynamic = "force-dynamic"`.
+- Parse bodies with `readJson`; validate params/query/body with Zod; call **one service**; return its DTO.
+- **No Drizzle, formulas, or orchestration in route files.**
+- Errors: throw `AppError(code, safeMessage, status)`; `toErrorResponse` produces `{ error: { code, message } }`. Never return raw `error.message`, SQL, or stacks.
+- Lists: `page`/`limit` (max 100) → `{ data, page, limit, total }`; allowlisted sort with stable `id` tie-break.
+- Cross-org resource → same 404 as missing. Finance fields only with `finance:read`.
+- Long work → enqueue a job, return 202.
+
+Full guidance: `.cursor/skills/facilityiq-api-routes/SKILL.md`.

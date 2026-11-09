@@ -1,0 +1,15 @@
+---
+description: FacilityIQ seed data must stay deterministic and tell one consistent Acme demo story
+globs: src/db/seed/**
+alwaysApply: false
+---
+
+# Deterministic seed
+
+- IDs via `deterministicUuid(name)`; never `randomUUID()` / `gen_random_uuid()` for seeded rows.
+- Times from `PERIOD_END` / `SEEDED_AT`; never `new Date()` / `now()`. No unseeded randomness.
+- Acme Manufacturing / West Distribution Center: metrics, events, insights, scenarios must agree (five problem conditions + healthy areas).
+- Running `pnpm db:seed` twice must yield identical data (`tests/integration/seed.test.ts`).
+- Update `README.md` counts and demo accounts if they change.
+
+Full guidance: `.cursor/skills/facilityiq-seed-data/SKILL.md`.

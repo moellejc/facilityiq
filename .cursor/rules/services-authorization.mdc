@@ -1,0 +1,17 @@
+---
+description: FacilityIQ services and server actions enforce permissions, own transactions, and return DTOs
+globs: src/server/services/**,src/server/actions/**,src/lib/permissions/**
+alwaysApply: false
+---
+
+# Services and Server Actions
+
+- Start every service function with `assertRole(input.role, "<permission>")`. Services are the authorization boundary — not UI, not `proxy.ts`.
+- Inputs: trusted context (`organizationId`, `userId`, `role`) + untrusted `body`/`query` typed `unknown` and Zod-parsed inside.
+- Verify parent ownership before touching children; throw `AppError("NOT_FOUND", …, 404)` otherwise.
+- Multi-table writes in **one** transaction; never across an LLM/network call.
+- Return `present*` DTOs, gating cost/ROI with `roleCan(role, "finance:read")`. `viewer` can never mutate.
+- Server Actions: `requireRequestContext()` → call the **same service** → `revalidatePath` narrowly → return safe `{ error?, ok? }`. Never a second business implementation or a read API.
+- New permissions go in `PERMISSIONS` + `MATRIX`; never check role names directly.
+
+Full guidance: `.cursor/skills/facilityiq-services-and-domain-logic/SKILL.md`, `.cursor/skills/facilityiq-auth-and-permissions/SKILL.md`.

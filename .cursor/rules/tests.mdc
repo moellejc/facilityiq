@@ -1,0 +1,16 @@
+---
+description: FacilityIQ test conventions — determinism, behavior naming, tenant/role coverage, honest reporting
+globs: tests/**,vitest.config.ts,vitest.integration.config.ts
+alwaysApply: false
+---
+
+# Tests
+
+- **Never claim tests passed unless they ran.** Report exact commands, counts, and anything skipped or not run.
+- Money/KPI/projection tests: no network, no LLM, fixed clocks, exact decimals; assert `null` for missing data, not `0`.
+- Name by behavior (`returns null with unavailable_reason when no orders in period`); one behavior per test; no ordering dependencies.
+- New repository function → cross-org integration test. New mutation → viewer-denied test. Finance fields → absent without `finance:read`.
+- Bug fixes: regression test that fails before the fix.
+- Playwright: web-first assertions, no fixed sleeps.
+
+Full guidance: `.cursor/skills/facilityiq-unit-testing/SKILL.md`, `facilityiq-integration-testing`, `facilityiq-e2e-testing`.

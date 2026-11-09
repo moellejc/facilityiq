@@ -1,0 +1,16 @@
+---
+description: FacilityIQ 3D twin performance, cleanup, and no-data heatmap rules
+globs: src/components/3d/**,src/lib/twin/**,src/components/facilities/twin-loader.tsx
+alwaysApply: false
+---
+
+# 3D digital twin
+
+- `FacilityCanvas` loads only via the client wrapper `twin-loader.tsx` with `next/dynamic(..., { ssr: false })`.
+- `InstancedMesh` for repeated racks/pallets; memoize geometry/materials.
+- Per-frame camera/animation state in refs + `useFrame`, **never** `useState`.
+- Dispose owned geometries, materials, textures on unmount.
+- Scene and selection details come from data (`FacilityScene`) — no hardcoded demo strings or positions.
+- Heatmap colors from server-normalized values; missing samples get a distinct no-data color, never the zero/healthy color.
+
+Full guidance: `.cursor/skills/facilityiq-3d-digital-twin/SKILL.md`.

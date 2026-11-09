@@ -1,0 +1,15 @@
+---
+description: FacilityIQ insights use deterministic rules by default; LLMs only rephrase validated text
+globs: src/lib/ai/**,src/server/services/insight-service.ts
+alwaysApply: false
+---
+
+# Insights and AI
+
+- The app must work with `AI_API_KEY` empty. `DeterministicRulesProvider` is the default and fallback.
+- LLM output may only rephrase language. It never sets or changes `estimatedFinancialImpact`, severity, confidence, metrics, or references.
+- Validate all model output with Zod (`parseInsightLanguage`); on mismatch keep the deterministic text.
+- Providers return drafts only — no repository imports, no SQL, no mutations. Persistence goes through `insight-service`.
+- Inject `fetchImpl` so tests never hit the network.
+
+Full guidance: `.cursor/skills/facilityiq-insights-ai/SKILL.md`.

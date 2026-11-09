@@ -1,0 +1,15 @@
+---
+description: FacilityIQ worker handlers run with BYPASSRLS and must scope by job org and be idempotent
+globs: worker/**
+alwaysApply: false
+---
+
+# Background worker
+
+- The worker role **bypasses RLS** — every query must filter by the job's `organization_id` explicitly.
+- Zod-parse job payloads with the schema shared with the enqueuing service.
+- Reuse app services/repositories/pure libs; never a parallel implementation.
+- Handlers are idempotent: a retry after partial failure creates no duplicates.
+- Safe `last_error` messages only; no secrets. No LLM financial computation.
+
+Full guidance: `.cursor/skills/facilityiq-background-worker/SKILL.md`.
