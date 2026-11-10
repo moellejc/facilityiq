@@ -46,6 +46,7 @@ Notes:
 - Minimum permissions: `contents: read` by default; `packages: write` only on the publishing job.
 - No secrets committed or echoed. CI env values in `ci.yml` are throwaway test values — never reuse them elsewhere.
 - Pin action major versions; keep `concurrency` cancel-in-progress.
+- Take the pnpm version only from `package.json` `packageManager`. Do not also set `version` on `pnpm/action-setup`; that action fails when both are present.
 - Keep CI env in sync with `.env.example` and `vitest.integration.config.ts` when adding variables.
 - Changing step order or removing a check needs a standards decision — update Notion CI Process and this skill.
 

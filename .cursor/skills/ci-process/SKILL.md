@@ -27,7 +27,7 @@ pnpm db:migrate     # against test DB when needed
 pnpm test:integration
 ```
 
-CI installs with `pnpm install --frozen-lockfile` on Node 22 / pnpm 10. Lockfile drift fails the job — commit lockfile updates intentionally.
+CI installs with `pnpm install --frozen-lockfile` on Node 22. The pnpm version comes only from `packageManager` in `package.json` (pnpm 10). Do not also set `version` on `pnpm/action-setup`; that action fails when both are present. Lockfile drift fails the job — commit lockfile updates intentionally.
 
 ## Database in CI
 
