@@ -15,6 +15,13 @@
       "when": 1794152900000,
       "tag": "0001_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794287410967,
+      "tag": "0002_uneven_iron_patriot",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,8 @@
+import { readJson } from "@/lib/api";
 import { assertRole } from "@/lib/permissions";
 import { paginationSchema, parseSearchParams } from "@/lib/validation";
 import { withApi } from "@/server/http";
+import { createFacilityRecord } from "@/server/services/facility-service";
 
 export const dynamic = "force-dynamic";
 
@@ -10,4 +12,8 @@ export const GET = withApi(async (request, context) => {
   const start = (query.page - 1) * query.limit;
   const data = context.facilities.slice(start, start + query.limit);
   return { data, page: query.page, limit: query.limit, total: context.facilities.length };
+});
+
+export const POST = withApi(async (request, context) => {
+  return createFacilityRecord(context, await readJson(request));
 });
