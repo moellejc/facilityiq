@@ -7,10 +7,10 @@ description: FacilityIQ GitHub Actions CI and deploy workflow process — PR che
 
 ## Workflows
 
-| Workflow | File | Trigger | Purpose |
-| --- | --- | --- | --- |
-| CI | `.github/workflows/ci.yml` | `pull_request`, `push` to `main`, `workflow_call` | Format, lint, typecheck, unit tests, migrate, integration tests against Postgres 16 service |
-| Deploy | `.github/workflows/deploy.yml` | `push` to `main`, manual `workflow_dispatch` | Reuses CI, builds production Docker image, optional GHCR publish, staging stub, **refuses** automatic production deploy |
+| Workflow | File                           | Trigger                                           | Purpose                                                                                                                 |
+| -------- | ------------------------------ | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| CI       | `.github/workflows/ci.yml`     | `pull_request`, `push` to `main`, `workflow_call` | Format, lint, typecheck, unit tests, migrate, integration tests against Postgres 16 service                             |
+| Deploy   | `.github/workflows/deploy.yml` | `push` to `main`, manual `workflow_dispatch`      | Reuses CI, builds production Docker image, optional GHCR publish, staging stub, **refuses** automatic production deploy |
 
 Concurrency: CI cancels in-progress runs on the same ref; deploy does not cancel in-progress deploys.
 

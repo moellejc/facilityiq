@@ -7,11 +7,11 @@ description: FacilityIQ unit and integration testing standards with Vitest — f
 
 ## Layout
 
-| Suite | Config | Location | Role |
-| --- | --- | --- | --- |
-| Unit | `vitest.config.ts` | `tests/unit/**/*.test.ts` | Pure logic: KPIs, permissions, Zod, insight rules, scenario projections, twin view state. Node environment. No live Postgres required. |
-| Integration | `vitest.integration.config.ts` | `tests/integration/**/*.test.ts` | Seed, RLS, org isolation, repositories/services against Postgres. `fileParallelism: false`. Uses `DATABASE_URL_TEST`. |
-| E2E | Playwright (later) | `tests/e2e` | Browser smoke. Do not claim e2e coverage that was not run. |
+| Suite       | Config                         | Location                         | Role                                                                                                                                   |
+| ----------- | ------------------------------ | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit        | `vitest.config.ts`             | `tests/unit/**/*.test.ts`        | Pure logic: KPIs, permissions, Zod, insight rules, scenario projections, twin view state. Node environment. No live Postgres required. |
+| Integration | `vitest.integration.config.ts` | `tests/integration/**/*.test.ts` | Seed, RLS, org isolation, repositories/services against Postgres. `fileParallelism: false`. Uses `DATABASE_URL_TEST`.                  |
+| E2E         | Playwright (later)             | `tests/e2e`                      | Browser smoke. Do not claim e2e coverage that was not run.                                                                             |
 
 Run:
 

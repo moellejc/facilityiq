@@ -32,14 +32,14 @@ A change is done only when:
 
 ## Phased delivery (do not regress)
 
-| Phase | Outcome (accepted unless revisiting) |
-| --- | --- |
-| 1 | Foundation: schema, Auth.js, shell, seed, Compose, CI |
-| 2 | Interactive 3D twin from Postgres |
-| 3 | Deterministic analytics + heatmaps |
-| 4 | Insights (rules always; optional LLM language only) |
-| 5 | Scenario projections/APIs (editor UI may still be deferred) |
-| 6 | Uploads, Playwright suite, Docker/CI polish |
+| Phase | Outcome (accepted unless revisiting)                        |
+| ----- | ----------------------------------------------------------- |
+| 1     | Foundation: schema, Auth.js, shell, seed, Compose, CI       |
+| 2     | Interactive 3D twin from Postgres                           |
+| 3     | Deterministic analytics + heatmaps                          |
+| 4     | Insights (rules always; optional LLM language only)         |
+| 5     | Scenario projections/APIs (editor UI may still be deferred) |
+| 6     | Uploads, Playwright suite, Docker/CI polish                 |
 
 Do not reimplement accepted phases. Do not start Phase 6 work inside a docs/skills PR.
 
