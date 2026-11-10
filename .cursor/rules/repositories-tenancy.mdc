@@ -1,0 +1,20 @@
+---
+description: FacilityIQ repositories must scope every query by a trusted organizationId inside withTenant
+globs: src/server/repositories/**,src/db/tenant.ts
+alwaysApply: false
+---
+
+# Tenant scoping in repositories
+
+- First parameter is a **trusted** `organizationId` from request context — never from a request body.
+- Every `select`, `update`, `delete`, `count`, and `join` includes `eq(table.organizationId, organizationId)`.
+- Nested resources (facility → area → asset → file, scenario → results): constrain by org **and** verify the parent. Never load by child ID alone.
+- Run inside `withTenant({ organizationId, userId }, async (tx) => …)`; use the passed `tx` throughout.
+- No module-level tenant state. No HTTP status decisions or React here.
+
+```ts
+// ❌ eq(assets.id, assetId)
+// ✅ and(eq(assets.organizationId, organizationId), eq(assets.facilityId, facilityId), eq(assets.id, assetId))
+```
+
+Every new function needs a cross-org integration test. Full guidance: `.cursor/skills/facilityiq-multi-tenancy-rls/SKILL.md`.

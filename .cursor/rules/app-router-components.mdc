@@ -1,0 +1,18 @@
+---
+description: FacilityIQ App Router pages and React components — server-first, small client boundaries, no fake data, full data states
+globs: src/app/**/*.tsx,src/components/**/*.tsx
+alwaysApply: false
+---
+
+# App Router pages and components
+
+- Next.js 16 has breaking changes: check `node_modules/next/dist/docs/` before unfamiliar APIs.
+- Server Components by default; `'use client'` only on the smallest interactive leaf. No async Client Components.
+- Pages: `requireRequestContext()`, await `params`/`searchParams` (Promises), call services directly.
+- Client components never import `src/server/**` or `src/db/**`; props are minimal serializable DTOs.
+- No hardcoded KPI numbers or demo strings; unbuilt pages use `ComingNext`.
+- Handle loading, empty, unavailable (`unavailableLabel`), forbidden, not-found, and failed states. Show `—`, never `0`, for missing values.
+- Format with `src/lib/format.ts` / `src/lib/analytics/display.ts`, not ad-hoc `toFixed`.
+- Metadata via `metadata`/`generateMetadata`; never `next/head`.
+
+Full guidance: `.cursor/skills/facilityiq-nextjs-app-router/SKILL.md`, `facilityiq-ui-design-system`, `facilityiq-ui-states-and-forms`.

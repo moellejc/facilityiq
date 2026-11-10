@@ -1,0 +1,15 @@
+---
+description: Applied FacilityIQ migrations are immutable; schema changes ship as new versioned migrations
+globs: src/db/migrations/**,src/db/schema/**,drizzle.config.ts
+alwaysApply: false
+---
+
+# Migrations are append-only
+
+- **Never edit, rename, reorder, or delete** an existing file in `src/db/migrations/` or `meta/`.
+- Schema change: edit `src/db/schema/*.ts` → `pnpm db:generate` → review the **new** SQL file → `pnpm db:migrate`.
+- Money `numeric(15,2)` + `currency` (default `USD`), rates `numeric(18,4)`, `timestamptz`, UUID PKs via `gen_random_uuid()`. Never floats for money.
+- New tenant table: `organization_id` FK + index, RLS policy on `app.current_org_id()`, relations in `relations.ts`.
+- Don't Prettier-format migrations (they're in `.prettierignore`).
+
+Full guidance: `.cursor/skills/facilityiq-database-schema-migrations/SKILL.md`.

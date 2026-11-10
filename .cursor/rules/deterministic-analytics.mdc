@@ -1,0 +1,20 @@
+---
+description: FacilityIQ KPIs and scenario projections are deterministic, documented, and never treat missing data as zero
+globs: src/lib/analytics/**,src/lib/scenarios/**,src/server/services/analytics-service.ts,src/server/services/scenario-service.ts,docs/KPI_FORMULAS.md,docs/SCENARIOS.md
+alwaysApply: false
+---
+
+# Deterministic analytics and scenarios
+
+- Pure TypeScript/SQL only. **No LLM, network, randomness, or `Date.now()`** in formulas.
+- Missing inputs, empty period, zero denominator → `{ value: null, unit, unavailableReason }`. Never `0`.
+- Every KPI is defined in `docs/KPI_FORMULAS.md`; every scenario in `docs/SCENARIOS.md`. Change code and doc together.
+- Observed/baseline and projected/estimated stay in separate fields; projections never overwrite observed data. Label estimates as estimates.
+- Money keeps `numeric` precision; tests assert exact decimals.
+
+```ts
+// ❌ return orders / hours || 0;
+// ✅ if (hours === 0) return unavailable("orders_per_hour", "zero_denominator");
+```
+
+Full guidance: `.cursor/skills/facilityiq-analytics-kpis/SKILL.md`, `.cursor/skills/facilityiq-scenarios-projections/SKILL.md`.

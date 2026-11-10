@@ -1,66 +1,103 @@
-<!-- BEGIN:nextjs-agent-rules -->
-
-## This is NOT the Next.js you know
-
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
-
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
-
-<!-- END:nextjs-agent-rules -->
-
 # FacilityIQ agent guide
 
-FacilityIQ is a multi-tenant facility-operations SaaS. Treat the working tree, `docs/ARCHITECTURE.md`, `docs/KPI_FORMULAS.md`, `docs/SCENARIOS.md`, and the skills under `.cursor/skills/` as authoritative. Prefer working code over older plan notes when they disagree.
+FacilityIQ is Acme AI's multi-tenant 3D facility-intelligence SaaS: a Next.js App Router web app plus a Node worker, backed by PostgreSQL 16. Company engineering standards are maintained in Notion under **FacilityIQ Engineering Standards** (Coding Conventions, Unit Test Standards, CI Process, SDLC Best Practices). They are condensed into project skills and rules so agents can apply them while working.
 
-## Stack (do not reinvent)
+## How guidance is organized
 
-- Modular monolith: Next.js App Router (TypeScript strict) + a separate Node worker in this repo
-- Package manager: pnpm (Corepack); pin via `pnpm-lock.yaml`
-- PostgreSQL 16 + Drizzle ORM + versioned SQL migrations under `src/db/migrations`
-- Auth.js v5 database sessions; passwords hashed with Argon2id (`src/lib/auth/password.ts`)
-- Zod at API / env / AI-language boundaries; structured `{ error: { code, message } }`
-- Tailwind CSS + shadcn/ui (radix-nova preset in this repo)
-- Three.js + React Three Fiber + Drei for the twin; Recharts for analytics
-- Vitest unit + integration; Playwright e2e hooks exist for later smoke
-- Docker Compose is the full-stack demo path; app port **43123**
+- **Workflow skills** describe how to carry out a type of task. Start every task with one.
+- **Domain skills** describe what good code looks like in one area (Next.js, UI, API, database, and so on). Workflow skills tell you which ones to load; you can also find them by folder in the tables below.
+- **Rules** in `.cursor/rules/*.mdc` attach automatically when you open matching files. They hold the hard rules for that area and point to the full skill.
 
-## Layering
+Skills live in `.cursor/skills/<name>/SKILL.md`. Read the whole skill before acting on it.
 
-| Layer | Location | Rule |
-| --- | --- | --- |
-| UI | `src/components`, App Router pages | Thin. No KPI formulas, tenancy, or permission matrices. |
-| Route handlers / server actions | `src/app/api`, `src/server/actions` | Auth + Zod parse + call a service. No SQL. |
-| Services | `src/server/services`, pure logic in `src/lib/*` | Permissions, orchestration, projections, insight rules. |
-| Repositories | `src/server/repositories` | Always take `organizationId` (and usually `userId`) and filter by it. Use `withTenant`. |
-| Schema / seed | `src/db/schema`, `src/db/seed` | Never rewrite an applied migration. Add a new migration instead. |
+## 1. Pick a workflow skill
 
-## Tenancy, auth, roles
+| Task                                                                                | Workflow skill                                             |
+| ----------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| New feature, endpoint, page, panel, KPI, scenario, insight rule, job, 3D capability | `facilityiq-feature-development`                           |
+| Bug, regression, wrong number, failing test, data leak                              | `facilityiq-bug-fixing`                                    |
+| Refactor, restructure, cleanup, performance work                                    | `facilityiq-refactoring`                                   |
+| Add or upgrade a dependency, vulnerability fix                                      | `facilityiq-dependency-upgrades`                           |
+| Docs, README, `.env.example`, skills, `AGENTS.md`                                   | `facilityiq-documentation-updates`                         |
+| Before saying work is done, opening a PR, writing a PR description                  | `facilityiq-pr-readiness`                                  |
+| Reviewing a PR or diff                                                              | `facilityiq-code-review`                                   |
+| Change touching auth, tenancy, files, secrets, AI, or caching                       | add `facilityiq-security-review`                           |
+| Orienting in the codebase                                                           | `facilityiq-coding-conventions` (overview and skill index) |
 
-1. Resolve membership from `organization_members`. Never trust a client-supplied organization id without a membership check.
-2. Active org / facility come from validated cookies (`facilityiq.org`, `facilityiq.facility`) and are re-checked against membership.
-3. Enforce permissions with `assertRole` / `roleCan` in services (`src/lib/permissions`). Roles: `org_admin`, `operations_manager`, `finance_manager`, `viewer`. Viewer is read-only for mutations (layouts, scenarios, insights write, uploads).
-4. RLS is defense in depth via `app.current_organization_id` / `app.current_user_id` inside `withTenant`. Repositories still filter by `organizationId`.
-5. Secrets stay in env (`.env.example`). Never put `AI_API_KEY`, database URLs, or Auth secrets in client bundles.
+Every code change ends with `facilityiq-pr-readiness`.
 
-## Domain invariants
+## 2. Load the domain skills for the areas you touch
 
-- **KPIs and scenarios are deterministic.** Formulas live in `src/lib/analytics` and `src/lib/scenarios`. Document them in `docs/KPI_FORMULAS.md` / `docs/SCENARIOS.md`. An LLM must never compute money, throughput, or ROI.
-- **Missing samples are not zero.** Return `null` with `unavailableReason` (`empty_period`, `missing_inputs`, `zero_denominator`). Do not paint absent data as `0`.
-- **Baseline vs projected.** Observed metrics stay labeled `observed`. Scenario / insight dollar estimates stay labeled modeled / estimate — never verified savings.
-- **Insights** work with no `AI_API_KEY`. Optional language enrichment may only rephrase Zod-validated text fields after rules already computed evidence. Model output cannot mutate the database.
-- **3D twin:** load the canvas through a client `next/dynamic` import with `{ ssr: false }` (`twin-loader.tsx`). Use `InstancedMesh` for racks/pallets. Selection details come from the scene DTO / Postgres, not hardcoded demo strings.
-- **Credentials + database sessions:** password sign-in inserts the Auth.js session row in `auth-service` (Auth.js credentials alone cannot create DB sessions in this version). Do not “fix” that by switching to JWT-only.
+**Frontend**
 
-## Definition of done (every change)
+| Area                                            | Paths                                                                        | Skill                                 |
+| ----------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------- |
+| Next.js routing, pages, layouts, Server Actions | `src/app/**`, `src/proxy.ts`, `src/server/actions`                           | `facilityiq-nextjs-app-router`        |
+| Design system, styling, formatting              | `src/components/ui`, `src/components/layout`, `globals.css`, `lib/format.ts` | `facilityiq-ui-design-system`         |
+| Data states and forms                           | feature components, forms, dialogs                                           | `facilityiq-ui-states-and-forms`      |
+| Charts and KPI cards                            | `src/components/charts`, `src/components/dashboard`                          | `facilityiq-charts-dataviz`           |
+| 3D digital twin                                 | `src/components/3d`, `src/lib/twin`                                          | `facilityiq-3d-digital-twin`          |
+| Client state and caching                        | URL params, providers, `revalidatePath`                                      | `facilityiq-client-state-and-caching` |
 
-1. Logic in the right layer; org scoping and roles enforced on the server.
-2. `pnpm lint`, `pnpm typecheck`, `pnpm test:unit`, and (when DB/schema touched) `pnpm test:integration` actually run — do not claim pass without running.
-3. No fake KPI numbers. Seeded demo password remains documented in README only.
-4. Small, focused PRs. Prefer vertical slices that leave the app runnable without optional AI keys.
+**Backend**
 
-## Skills
+| Area                     | Paths                                                        | Skill                                  |
+| ------------------------ | ------------------------------------------------------------ | -------------------------------------- |
+| HTTP API                 | `src/app/api/**/route.ts`, `src/server/http.ts`              | `facilityiq-api-routes`                |
+| Services, business logic | `src/server/services`                                        | `facilityiq-services-and-domain-logic` |
+| Auth and permissions     | `src/lib/auth`, `src/lib/permissions`, `services/context.ts` | `facilityiq-auth-and-permissions`      |
+| Background jobs          | `worker/`, `background_jobs`                                 | `facilityiq-background-worker`         |
+| File storage, uploads    | `src/lib/storage`, `/api/uploads`                            | `facilityiq-file-storage-uploads`      |
 
-- `.cursor/skills/coding-conventions/SKILL.md`
-- `.cursor/skills/unit-test-standards/SKILL.md`
-- `.cursor/skills/ci-process/SKILL.md`
-- `.cursor/skills/sdlc-best-practices/SKILL.md`
+**Database**
+
+| Area                     | Paths                                         | Skill                                   |
+| ------------------------ | --------------------------------------------- | --------------------------------------- |
+| Schema and migrations    | `src/db/schema`, `src/db/migrations`          | `facilityiq-database-schema-migrations` |
+| Tenant isolation and RLS | `src/server/repositories`, `src/db/tenant.ts` | `facilityiq-multi-tenancy-rls`          |
+| Seed data                | `src/db/seed`                                 | `facilityiq-seed-data`                  |
+
+**Product domains**
+
+| Area               | Paths                                       | Skill                              |
+| ------------------ | ------------------------------------------- | ---------------------------------- |
+| Analytics and KPIs | `src/lib/analytics`, `docs/KPI_FORMULAS.md` | `facilityiq-analytics-kpis`        |
+| Scenarios          | `src/lib/scenarios`, `docs/SCENARIOS.md`    | `facilityiq-scenarios-projections` |
+| Insights and AI    | `src/lib/ai`                                | `facilityiq-insights-ai`           |
+
+**Quality and platform**
+
+| Area                      | Paths                                     | Skill                            |
+| ------------------------- | ----------------------------------------- | -------------------------------- |
+| Unit tests                | `tests/unit`                              | `facilityiq-unit-testing`        |
+| Integration tests         | `tests/integration`                       | `facilityiq-integration-testing` |
+| End-to-end tests          | `tests/e2e`                               | `facilityiq-e2e-testing`         |
+| CI/CD                     | `.github/workflows`, `Dockerfile`         | `facilityiq-ci-cd`               |
+| Local environment, config | `compose.yaml`, `docker/`, `.env.example` | `facilityiq-local-env-config`    |
+
+## Ground rules (always apply)
+
+- Scope every tenant-owned query to the authenticated organization. Never trust a client-supplied `organizationId`.
+- Enforce roles on the server (`src/lib/permissions` and services). `viewer` never mutates.
+- Money, KPIs, and projections are deterministic TypeScript/SQL, never LLM output. Missing data is `null` with `unavailableReason`, never `0`.
+- Keep layering intact: thin routes and components, logic in services and `src/lib`, queries in repositories.
+- Schema changes ship as a new versioned migration. Never edit an applied one.
+- The app must work without `AI_API_KEY`.
+- Never claim tests passed, CI ran, an image was published, or a deploy happened unless you observed it. Report exact commands and results, including anything skipped or not run.
+
+## Commands
+
+```bash
+pnpm install --frozen-lockfile
+pnpm format:check && pnpm lint && pnpm typecheck
+pnpm test:unit
+pnpm db:migrate && pnpm test:integration   # requires PostgreSQL 16
+pnpm build
+docker compose up --build                  # full local stack (app, worker, postgres, minio)
+```
+
+## When guidance conflicts or is missing
+
+- If a skill, a rule, the Notion standards, and the in-repo docs (`docs/ARCHITECTURE.md`, `docs/KPI_FORMULAS.md`, `docs/SCENARIOS.md`, `README.md`) disagree, don't silently pick one. Fix the in-repo doc or skill in the same change, or flag the conflict to the user.
+- Some skills (UI design system, background worker, file storage) are partly derived from current code because Notion doesn't cover those areas in depth yet. Those sections are marked. Follow them, but treat them as existing practice rather than settled standards, and flag anything that seems wrong.
+- When a Notion standard changes, update the matching skill and rule in the same PR. When a repo change alters a convention, update the skill, the rule, and the relevant `docs/` file, and flag the Notion page that needs to change.
