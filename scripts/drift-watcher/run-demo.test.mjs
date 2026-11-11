@@ -57,6 +57,7 @@ test("builds a deprecated entry that keeps the claim not verified", () => {
     /node_modules\/next\/dist\/docs\/01-app\/03-api-reference\/04-functions\/unstable_cache\.md/,
   );
   assert.match(entry.message, /migrating it is optional/);
+  assert.match(entry.message, /has been replaced by use cache in Next\.js 16/);
   assert.equal(new RegExp(entry.pattern).test("const x = unstable_cache(fn)"), true);
   assert.equal(new RegExp(entry.pattern).test("const x = stable_cache(fn)"), false);
 });
@@ -202,6 +203,9 @@ test("the automation spec only opens pull requests and links the existing drift 
   assert.match(spec, /0 13 \* \* 1/);
   assert.match(spec, /not verified/);
   assert.match(spec, /Do not merge/);
+  assert.match(spec, /`deprecated\[\]` only/);
+  assert.match(spec, /has been replaced by `use cache` in Next\.js 16/);
+  assert.match(spec, /does not write `verifiedAgainst\.next`/);
 });
 
 function tempRepo() {

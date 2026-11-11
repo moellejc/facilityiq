@@ -84,22 +84,23 @@ One pull request, infra scope (`GUARD_SCOPE=infra`). `.cursor/guardrails.json` i
 
 The deprecated-API list is the `deprecated` array inside `.cursor/guardrails.json`. There is no second list file.
 
-| Path                                                            | Allowed edit                                                                             |
-| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `.cursor/guardrails.json`                                       | `deprecated[]` only, plus `verifiedAgainst.next` only in the separate upgrade case below |
-| `.cursor/skills/nextjs-upgrade-assistant/SKILL.md`              | Facts the notes changed                                                                  |
-| `.cursor/skills/nextjs-app-router-route/SKILL.md`               | Facts the notes changed                                                                  |
-| `.cursor/skills/nextjs-server-action-vs-route-handler/SKILL.md` | Facts the notes changed                                                                  |
-| `.cursor/skills/nextjs-caching-and-revalidation/SKILL.md`       | Facts the notes changed                                                                  |
-| `.cursor/skills/facilityiq-nextjs-app-router/SKILL.md`          | Facts the notes changed                                                                  |
-| `.cursor/skills/facilityiq-api-routes/SKILL.md`                 | Facts the notes changed                                                                  |
-| `.cursor/skills/facilityiq-client-state-and-caching/SKILL.md`   | Facts the notes changed                                                                  |
-| `.cursor/skills/facilityiq-dependency-upgrades/SKILL.md`        | The Next.js row, when the notes change that procedure                                    |
-| `docs/guardrails.md`                                            | The enforced-check table, when a deprecated id is added or removed                       |
+| Path                                                            | Allowed edit                                                               |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `.cursor/guardrails.json`                                       | `deprecated[]` only. This automation does not write `verifiedAgainst.next` |
+| `.cursor/skills/nextjs-upgrade-assistant/SKILL.md`              | Facts the notes changed                                                    |
+| `.cursor/skills/nextjs-app-router-route/SKILL.md`               | Facts the notes changed                                                    |
+| `.cursor/skills/nextjs-server-action-vs-route-handler/SKILL.md` | Facts the notes changed                                                    |
+| `.cursor/skills/nextjs-caching-and-revalidation/SKILL.md`       | Facts the notes changed                                                    |
+| `.cursor/skills/facilityiq-nextjs-app-router/SKILL.md`          | Facts the notes changed                                                    |
+| `.cursor/skills/facilityiq-api-routes/SKILL.md`                 | Facts the notes changed                                                    |
+| `.cursor/skills/facilityiq-client-state-and-caching/SKILL.md`   | Facts the notes changed                                                    |
+| `.cursor/skills/facilityiq-dependency-upgrades/SKILL.md`        | The Next.js row, when the notes change that procedure                      |
+| `docs/guardrails.md`                                            | The enforced-check table, when a deprecated id is added or removed         |
 
 Leave these alone:
 
-- `package.json`, `pnpm-lock.yaml`, and `node_modules`. A version bump is a separate pull request that follows `nextjs-upgrade-assistant` and `facilityiq-dependency-upgrades`, with `GUARD_ALLOW_DEPS=1`. Say that in the guidance pull request. Do not widen `verifiedAgainst.next` to hide drift.
+- `package.json`, `pnpm-lock.yaml`, and `node_modules`. A version bump is a separate pull request that follows `nextjs-upgrade-assistant` and `facilityiq-dependency-upgrades`, with `GUARD_ALLOW_DEPS=1`. Say that in the guidance pull request.
+- `verifiedAgainst.next`. Change it only in that version-bump pull request, after the new version is installed. Do not widen it to hide drift.
 - `scripts/guard/**`, including `scripts/guard/lib.mjs`. A deprecation that cannot be expressed as data is a separate infra review. Describe the gap in the pull request body and do not edit the scripts.
 - Import rules, unless the notes change that boundary. Then update the skill named on the rule in the same pull request.
 - `AGENTS.md` between `BEGIN:nextjs-agent-rules` and `END:nextjs-agent-rules`. The current file has no such block.
@@ -135,7 +136,7 @@ Triggers:
 How to read notes:
 - Confirm the tag at https://github.com/vercel/next.js/releases/tag/vX.Y.Z
 - Read the matching page under https://nextjs.org/docs/app/guides/upgrading
-- Read the version-matched tree at node_modules/next/dist/docs/ for the version installed in this repo (package.json). If the site and the installed tree disagree, the installed tree wins.
+- Read node_modules/next/dist/docs/ for the version already in package.json. "Installed tree wins" means that tree beats nextjs.org for that pin. It does not mean one file in the tree overrides another file in the same tree. For a release newer than the pin, cite the tag URL. Do not treat that tag as the installed tree.
 - Cite the source URL for every claim you write down. If you could not confirm a claim in the release tag page or the installed tree, mark it "not verified" and do not add a guard rule for it.
 - Ignore canary releases unless the tag page is the version you were asked to read. Do not install next@canary.
 - Ignore demo/drift-watcher/. It is SIMULATED. The unstable_cache / "use cache" fixture is not a real Next.js deprecation. Do not copy it into .cursor/guardrails.json.
@@ -144,7 +145,8 @@ Decision:
 - No API change and the skills already match the notes: do not open a pull request. Reply with the tag you read and the URL.
 - A confirmed deprecation or removal that fits deprecated[]: open one pull request.
 - A skill states a claim the notes do not support: open one pull request that marks the claim "not verified" and cites what you read. Do not invent a replacement API.
-- A version bump is required to install the release: do not bump package.json here. In the pull request body, point at nextjs-upgrade-assistant and facilityiq-dependency-upgrades. Leave verifiedAgainst.next unchanged in this guidance pull request.
+- The installed API page, the installed migration guide, and the public guide disagree: quote all three in the skill. Do not add a deprecated[] entry. Mark that guard-rule decision "not verified". The installed next@16.4.5 unstable_cache page says "This API has been replaced by use cache in Next.js 16" and the migration guide says existing unstable_cache caching keeps working and migrating it is optional. That is this case. The SIMULATED demo shows the shape of a rule. It is not the rule.
+- A version bump is required to install the release: do not bump package.json here. Do not change verifiedAgainst.next here. In the pull request body, point at nextjs-upgrade-assistant and facilityiq-dependency-upgrades. Change verifiedAgainst.next only in that later pull request, after the new version is installed.
 - The deprecation cannot be expressed as data in deprecated[]: do not edit scripts/guard. Describe the gap and still avoid a script change.
 
 Edits, when you open a pull request:
@@ -171,20 +173,21 @@ You only open pull requests. Never merge. Do not merge. Never run `gh pr merge`.
 
 The verified contrast, fetched 2026-11-11: the previous-model caching guide still documents `unstable_cache` for non-`fetch` functions. Source: https://nextjs.org/docs/app/guides/caching
 
-Installed `next@16.4.5` recommends replacing `unstable_cache` with the `use cache` directive, and the migration guide says migrating is optional. That is not a deprecation. Paths are in the sources table.
+Installed `next@16.4.5` says: This API has been replaced by `use cache` in Next.js 16. The same page recommends the `use cache` directive. The migration guide says existing `unstable_cache` caching keeps working and migrating it is optional. The public guide still documents the API. When those three disagree, the watcher quotes them and does not add a `deprecated[]` entry. That guard-rule decision is **not verified**. Paths are in the sources table.
 
 The dry run writes `demo/drift-watcher/SIMULATED.diff`, `SIMULATED-deprecated-entry.json`, and `SAMPLE-PR.md`. It does not edit `.cursor/guardrails.json` unless `DRIFT_WATCHER_APPLY=1` is set with `--apply`. Revert with `--revert`. Details: `demo/drift-watcher/README.md`.
 
 ## Sources
 
-| Claim                                                                                                          | Status                                     | Source                                                                                                                                                                |
-| -------------------------------------------------------------------------------------------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Automations support a cron trigger and a webhook trigger, and more than one trigger                            | Verified for the page fetched 2026-11-11   | https://cursor.com/docs/cloud-agent/automations                                                                                                                       |
-| That page does not list a GitHub Release or npm publish trigger                                                | Verified for that page only                | same URL                                                                                                                                                              |
-| A release trigger exists somewhere else                                                                        | not verified                               |                                                                                                                                                                       |
-| Pull request creation is the default write tool; approvals are a separate switch on the comment tool           | Verified for the page fetched 2026-11-11   | same URL                                                                                                                                                              |
-| Memories should stay off when input is untrusted                                                               | Verified as a warning on that page         | same URL                                                                                                                                                              |
-| Weekly `drift` job runs `drift-check.mjs` on cron `0 13 * * 1`                                                 | Verified in this repo                      | `.github/workflows/guardrails.yml`                                                                                                                                    |
-| The caching guide still documents `unstable_cache`                                                             | Verified for the page fetched 2026-11-11   | https://nextjs.org/docs/app/guides/caching                                                                                                                            |
-| Next.js 16.4.5 deprecates `unstable_cache` in favor of `"use cache"`                                           | not verified                               | SIMULATED fixture only                                                                                                                                                |
-| Installed `next@16.4.5` recommends replacing `unstable_cache` with `use cache`, and says migrating is optional | Verified in this checkout's `node_modules` | `node_modules/next/dist/docs/01-app/03-api-reference/04-functions/unstable_cache.md`, `node_modules/next/dist/docs/01-app/02-guides/migrating-to-cache-components.md` |
+| Claim                                                                                                   | Status                                     | Source                                                                                 |
+| ------------------------------------------------------------------------------------------------------- | ------------------------------------------ | -------------------------------------------------------------------------------------- |
+| Automations support a cron trigger and a webhook trigger, and more than one trigger                     | Verified for the page fetched 2026-11-11   | https://cursor.com/docs/cloud-agent/automations                                        |
+| That page does not list a GitHub Release or npm publish trigger                                         | Verified for that page only                | same URL                                                                               |
+| A release trigger exists somewhere else                                                                 | not verified                               |                                                                                        |
+| Pull request creation is the default write tool; approvals are a separate switch on the comment tool    | Verified for the page fetched 2026-11-11   | same URL                                                                               |
+| Memories should stay off when input is untrusted                                                        | Verified as a warning on that page         | same URL                                                                               |
+| Weekly `drift` job runs `drift-check.mjs` on cron `0 13 * * 1`                                          | Verified in this repo                      | `.github/workflows/guardrails.yml`                                                     |
+| The caching guide still documents `unstable_cache`                                                      | Verified for the page fetched 2026-11-11   | https://nextjs.org/docs/app/guides/caching                                             |
+| Installed API page: This API has been replaced by `use cache` in Next.js 16                             | Verified in this checkout's `node_modules` | `node_modules/next/dist/docs/01-app/03-api-reference/04-functions/unstable_cache.md`   |
+| Installed migration guide: existing `unstable_cache` caching keeps working and migrating it is optional | Verified in this checkout's `node_modules` | `node_modules/next/dist/docs/01-app/02-guides/migrating-to-cache-components.md`        |
+| Treating that disagreement as a `deprecated[]` rule                                                     | not verified                               | SIMULATED fixture only. The watcher quotes the three sources and does not add the rule |

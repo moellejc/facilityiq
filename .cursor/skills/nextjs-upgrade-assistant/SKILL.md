@@ -76,7 +76,9 @@ Never merge. Never push to `main`.
 
 The weekly mechanical check is the `drift` job in `.github/workflows/guardrails.yml` (cron `0 13 * * 1`, command `node scripts/guard/drift-check.mjs`). Do not add a second workflow that repeats it.
 
-`demo/drift-watcher/` is a **SIMULATED** fixture (`unstable_cache` discouraged in favor of `"use cache"`). That deprecation claim is **not verified**. Do not copy it into `deprecated[]`. The previous-model guide still documents `unstable_cache`: https://nextjs.org/docs/app/guides/caching (fetched 2026-11-11). Installed `next@16.4.5` recommends replacing it with the `use cache` directive and says migrating is optional (`node_modules/next/dist/docs/01-app/03-api-reference/04-functions/unstable_cache.md`, `node_modules/next/dist/docs/01-app/02-guides/migrating-to-cache-components.md`). A recommendation is not a deprecated-list entry.
+`demo/drift-watcher/` is a **SIMULATED** fixture (`unstable_cache` discouraged in favor of `"use cache"`). Do not copy it into `deprecated[]`. On installed `next@16.4.5`, the API page says: This API has been replaced by `use cache` in Next.js 16 (`node_modules/next/dist/docs/01-app/03-api-reference/04-functions/unstable_cache.md`). The migration guide says existing `unstable_cache` caching keeps working and migrating it is optional (`node_modules/next/dist/docs/01-app/02-guides/migrating-to-cache-components.md`). The previous-model guide still documents it: https://nextjs.org/docs/app/guides/caching (fetched 2026-11-11). When those three disagree, quote all three and do not add a `deprecated[]` entry. That guard-rule decision is **not verified**.
+
+"Installed tree wins" means `node_modules/next/dist/docs/` for the version already in `package.json`, compared with nextjs.org. It does not mean one file in that tree overrides another file in the same tree. For a release newer than the pin, cite the tag URL and leave `verifiedAgainst.next` unchanged. Change that prefix only in the upgrade pull request, after that version is installed. Do not widen it to hide drift.
 
 ## Guard rules this procedure maintains
 

@@ -84,9 +84,11 @@ node scripts/drift-watcher/run-demo.mjs
 
 That writes `demo/drift-watcher/SIMULATED.diff`, `SIMULATED-deprecated-entry.json`, and `SAMPLE-PR.md`. Apply and revert are documented in `demo/drift-watcher/README.md`. Do not commit an applied checkout.
 
-The caching guide still documents `unstable_cache` for non-`fetch` functions (fetched 2026-11-11): https://nextjs.org/docs/app/guides/caching
+Three sources disagree, so this is not a `deprecated[]` rule. The guard-rule decision is **not verified**.
 
-Installed `next@16.4.5` recommends replacing `unstable_cache` with the `use cache` directive and says migrating is optional (`node_modules/next/dist/docs/01-app/03-api-reference/04-functions/unstable_cache.md`, `node_modules/next/dist/docs/01-app/02-guides/migrating-to-cache-components.md`). That recommendation is not a deprecation, so it is not a `deprecated[]` rule.
+- Installed `next@16.4.5` API page: This API has been replaced by `use cache` in Next.js 16 (`node_modules/next/dist/docs/01-app/03-api-reference/04-functions/unstable_cache.md`).
+- Installed migration guide: existing `unstable_cache` caching keeps working and migrating it is optional (`node_modules/next/dist/docs/01-app/02-guides/migrating-to-cache-components.md`).
+- Previous-model guide, fetched 2026-11-11: still documents `unstable_cache` for non-`fetch` functions. https://nextjs.org/docs/app/guides/caching
 
 ## Not exercised in CI
 

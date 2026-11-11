@@ -69,7 +69,13 @@ function assertFixture(data) {
     throw new Error("Fixture pattern must mention the API name.");
   }
   if (data.installed != null) {
-    for (const key of ["recommendation", "recommendationPath", "stillWorks", "stillWorksPath"]) {
+    for (const key of [
+      "replacedSentence",
+      "recommendation",
+      "recommendationPath",
+      "stillWorks",
+      "stillWorksPath",
+    ]) {
       if (typeof data.installed[key] !== "string" || data.installed[key].length === 0) {
         throw new Error(`Fixture installed.${key} must be a non-empty string.`);
       }
@@ -82,7 +88,7 @@ function installedNote(fixture) {
     return "Installed-tree comparison (node_modules/next/dist/docs/): not verified.";
   }
   const note = fixture.installed;
-  return `${note.recommendation} Path: ${note.recommendationPath}. ${note.stillWorks} Path: ${note.stillWorksPath}.`;
+  return `${note.replacedSentence} ${note.recommendation} Path: ${note.recommendationPath}. ${note.stillWorks} Path: ${note.stillWorksPath}.`;
 }
 
 export function deprecatedEntry(fixture) {
@@ -120,7 +126,7 @@ Verified contrast: ${fixture.verifiedContrast.statement} Source: ${fixture.verif
 
 No codemod applies. Leave Cache Components off. Do not add \`"use cache"\` because of this fixture.
 
-${installedNote(fixture)} A recommendation in the installed tree is not a deprecation. The fixture's deprecation claim stays **not verified**.
+${installedNote(fixture)} The installed API page and the migration guide disagree, and the public guide still documents the API. The watcher quotes all three and does not add a live \`deprecated[]\` entry for that disagreement. The fixture's guard-rule claim stays **not verified**.
 
 ${END}
 `;
