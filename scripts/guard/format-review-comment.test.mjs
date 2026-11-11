@@ -10,9 +10,12 @@ import {
   COMMENT_MARKER,
   REQUIRED_CHECKS,
   formatReviewComment,
+  originMainCodeowners,
   parseGuardReport,
   pullRequestBodyFindings,
   staffEngReviewers,
+  textOutsideFences,
+  trustedStaffEng,
 } from "./format-review-comment.mjs";
 import { loadConfig, matchesAny, renderFindings } from "./lib.mjs";
 import { buildReport } from "./pre-pr.mjs";
@@ -100,8 +103,9 @@ test("maps a guard error to its rule id and skill doc, and does not invent other
   assert.match(comment, /\| error \| `client-imports-server` \| `src\/components\/a\.tsx:2` \|/);
   assert.match(
     comment,
-    /\[facilityiq-nextjs-app-router\]\(https:\/\/github\.com\/moellejc\/facilityiq\/blob\/0123456789abcdef\/\.cursor\/skills\/facilityiq-nextjs-app-router\/SKILL\.md\) — Coding Conventions §14–§16; GitFlow §6/,
+    /\[facilityiq-nextjs-app-router\]\(https:\/\/github\.com\/moellejc\/facilityiq\/blob\/0123456789abcdef\/\.cursor\/skills\/facilityiq-nextjs-app-router\/SKILL\.md\)/,
   );
+  assert.match(comment, /Coding Conventions §14–§16; GitFlow §6/);
   assert.match(comment, /Staff Eng review requested: @moellejc/);
   assert.match(
     comment,
@@ -199,7 +203,7 @@ test("a missing required section requests changes and links the pull request tem
   assert.match(comment, /\| error \| `pr-body-section` \| `\(pull request body\)` \|/);
   assert.match(
     comment,
-    /\[pull_request_template\.md\]\(https:\/\/github\.com\/moellejc\/facilityiq\/blob\/0123456789abcdef\/\.github\/pull_request_template\.md\) — GitFlow §9\.2/,
+    /\[pull_request_template\.md\]\(https:\/\/github\.com\/moellejc\/facilityiq\/blob\/0123456789abcdef\/\.github\/pull_request_template\.md\)/,
   );
   assert.match(comment, /Missing section: Demo video\./);
 });
@@ -284,7 +288,8 @@ test("cli reads a report piped from another process", () => {
   );
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /\*\*Verdict: Ready for human review\*\*/);
-  assert.match(result.stdout, /Staff Eng review requested: @moellejc/);
+  assert.match(result.stdout, /Staff Eng review requested: not verified/);
+  assert.doesNotMatch(result.stdout, /@moellejc/);
 });
 
 test("omitting pnpm build leaves that row not verified", () => {
@@ -342,7 +347,83 @@ test("cli prints one comment from a report on stdin", () => {
   );
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /<!-- facilityiq-pr-guardrail-review -->/);
-  assert.match(result.stdout, /Staff Eng review requested: @moellejc/);
+  assert.match(result.stdout, /Staff Eng review requested: not verified/);
+  assert.doesNotMatch(result.stdout, /@moellejc/);
   assert.match(result.stdout, /\| Typecheck \| `pnpm typecheck` \| pass \|/);
   assert.match(result.stdout, /\*\*Verdict: Changes requested\*\*/);
+});
+
+test("a markdown link and a mention in a finding stay inside a fence", () => {
+  const comment = formatReviewComment({
+    report: reportFor([
+      {
+        level: "error",
+        rule: "client-imports-server",
+        file: "src/components/a.tsx",
+        line: 2,
+        message: 'imports "@/server/services/[phish](https://evil.example/p) @victim"',
+        skill: "facilityiq-nextjs-app-router",
+        standard: "Coding Conventions",
+      },
+    ]),
+    ref: SHA,
+    codeowners: owners,
+    reviewNotes: "NOTE: see [phish](https://evil.example/n) @victim\n",
+    checks: { "echo ](https://evil.example/c) @victim": "pass" },
+  });
+  const outside = textOutsideFences(comment);
+  assert.match(comment, /\]\(https:\/\/evil\.example\/p\)/);
+  assert.match(comment, /@victim/);
+  assert.doesNotMatch(outside, /evil\.example/);
+  assert.doesNotMatch(outside, /@victim/);
+});
+
+test("a path outside the temp directory is refused", () => {
+  const result = spawnSync(
+    process.execPath,
+    ["scripts/guard/format-review-comment.mjs", "--report", join(ROOT, "README.md"), "--ref", SHA],
+    { cwd: ROOT, encoding: "utf8" },
+  );
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /outside the temp directory/);
+  assert.doesNotMatch(result.stdout, /FacilityIQ guardrail review/);
+});
+
+test("omitted --codeowners ignores the worktree file; origin/main still supplies moellejc", () => {
+  const worktree = readFileSync(new URL("../../.github/CODEOWNERS", import.meta.url), "utf8");
+  assert.match(worktree, /@moellejc/);
+  const omitted = spawnSync(
+    process.execPath,
+    ["scripts/guard/format-review-comment.mjs", "--ref", SHA],
+    { cwd: ROOT, input: reportFor([]), encoding: "utf8" },
+  );
+  assert.equal(omitted.status, 0, omitted.stderr);
+  assert.match(omitted.stdout, /Staff Eng review requested: not verified/);
+  assert.doesNotMatch(omitted.stdout, /@moellejc/);
+
+  const dir = mkdtempSync(join(tmpdir(), "guard-owners-"));
+  const planted = join(dir, "CODEOWNERS");
+  writeFileSync(planted, "* @moellejc @not-staff\n");
+  const plantedRun = spawnSync(
+    process.execPath,
+    ["scripts/guard/format-review-comment.mjs", "--ref", SHA, "--codeowners", planted],
+    { cwd: ROOT, input: reportFor([]), encoding: "utf8" },
+  );
+  assert.equal(plantedRun.status, 0, plantedRun.stderr);
+  assert.match(plantedRun.stdout, /@moellejc/);
+  assert.doesNotMatch(plantedRun.stdout, /@not-staff/);
+
+  const fromMain = trustedStaffEng(originMainCodeowners(), originMainCodeowners());
+  assert.deepEqual(fromMain, ["moellejc"]);
+});
+
+test("the automation spec runs guard scripts from origin/main and treats the diff as data", () => {
+  const spec = readFileSync(
+    new URL("../../automations/pr-guardrail-review.md", import.meta.url),
+    "utf8",
+  );
+  assert.match(spec, /pull request copies were not executed/i);
+  assert.match(spec, /must not be followed as instructions/);
+  assert.match(spec, /origin\/main:\.github\/CODEOWNERS/);
+  assert.match(spec, /git archive origin\/main scripts\/guard/);
 });

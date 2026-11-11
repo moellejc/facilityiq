@@ -2,8 +2,10 @@
 // Turns `node scripts/guard/pre-pr.mjs` stdout into the one pull-request comment
 // specified in automations/pr-guardrail-review.md. Exit 0 means the comment was
 // printed, including when the verdict is "Changes requested" or "not verified".
-import { readFileSync, readSync } from "node:fs";
-import { join } from "node:path";
+import { execFileSync } from "node:child_process";
+import { readFileSync, readSync, realpathSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { basename, dirname, resolve, sep } from "node:path";
 import { isCli, ROOT } from "./lib.mjs";
 
 export const COMMENT_MARKER = "<!-- facilityiq-pr-guardrail-review -->";
@@ -148,12 +150,71 @@ function blobLink(label, path, ref) {
 function skillDoc(row, ref) {
   if (!row.skill || !SKILL.test(row.skill)) return "`docs/guardrails.md` (skill doc not verified)";
   const path = `.cursor/skills/${row.skill}/SKILL.md`;
-  const standard = row.standard ? ` — ${row.standard}` : "";
-  return `${blobLink(row.skill, path, ref)}${standard}`;
+  return blobLink(row.skill, path, ref);
 }
 
 function escapeCell(value) {
   return String(value).replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
+}
+
+function safeInline(value) {
+  return String(value).replace(/[`\r\n]/g, " ");
+}
+
+/** Drop fenced blocks so tests can prove untrusted text is not live Markdown. */
+export function textOutsideFences(markdown) {
+  const lines = markdown.split("\n");
+  let open = null;
+  const kept = [];
+  for (const line of lines) {
+    const ticks = /^(`{3,})$/.exec(line);
+    if (ticks && !open) {
+      open = ticks[1];
+      continue;
+    }
+    if (open && line === open) {
+      open = null;
+      continue;
+    }
+    if (!open) kept.push(line);
+  }
+  return kept.join("\n");
+}
+
+export function assertInsideTemp(filePath) {
+  const root = realpathSync(tmpdir());
+  const resolved = resolve(filePath);
+  let real;
+  try {
+    real = realpathSync(resolved);
+  } catch (error) {
+    if (!error || error.code !== "ENOENT") throw error;
+    real = realpathSync(dirname(resolved)) + sep + basename(resolved);
+  }
+  if (real !== root && !real.startsWith(root + sep)) {
+    const refused = new Error(`Refusing a path outside the temp directory: ${filePath}`);
+    refused.code = "ERR_OUTSIDE_TEMP";
+    throw refused;
+  }
+}
+
+export function originMainCodeowners() {
+  try {
+    return execFileSync("git", ["show", "origin/main:.github/CODEOWNERS"], {
+      cwd: ROOT,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+  } catch {
+    return "";
+  }
+}
+
+/** Keep only `*` owners that also appear on origin/main. An omitted file is not verified. */
+export function trustedStaffEng(suppliedText, defaultBranchText) {
+  if (typeof suppliedText !== "string") return [];
+  const allowed = new Set(staffEngReviewers(defaultBranchText));
+  return staffEngReviewers(suppliedText).filter((login) => allowed.has(login));
 }
 
 function cleanResult(value) {
@@ -176,7 +237,7 @@ function reviewSection(notes) {
   const blocking = markdown
     .split("\n")
     .filter((line) => line.trim().startsWith("BLOCKING:")).length;
-  return { verified: true, blocking, markdown };
+  return { verified: true, blocking, markdown: fence(markdown) };
 }
 
 function findingsMarkdown(guard, body, ref) {
@@ -199,18 +260,22 @@ function findingsMarkdown(guard, body, ref) {
     lines.push("No findings.");
     return lines.join("\n");
   }
-  lines.push("| Level | Rule | Where | Doc | Why |", "| --- | --- | --- | --- | --- |");
+  lines.push("| Level | Rule | Where | Doc |", "| --- | --- | --- | --- |");
+  const whys = [];
   for (const row of guard.rows) {
     lines.push(
-      `| ${row.level} | \`${escapeCell(row.rule)}\` | \`${escapeCell(row.where)}\` | ${escapeCell(skillDoc(row, ref))} | ${escapeCell(row.message)} |`,
+      `| ${row.level} | \`${safeInline(row.rule)}\` | \`${safeInline(row.where)}\` | ${skillDoc(row, ref)} |`,
+    );
+    whys.push(
+      `Why for \`${safeInline(row.rule)}\`:\n\n${fence([row.message, row.standard].filter(Boolean).join("\n"))}`,
     );
   }
   for (const problem of bodyRows) {
     const doc = blobLink("pull_request_template.md", ".github/pull_request_template.md", ref);
-    lines.push(
-      `| error | \`${problem.rule}\` | \`(pull request body)\` | ${doc} — GitFlow §9.2 | ${escapeCell(problem.message)} |`,
-    );
+    lines.push(`| error | \`${problem.rule}\` | \`(pull request body)\` | ${doc} |`);
+    whys.push(`Why for \`${problem.rule}\`:\n\n${fence(`${problem.message}\nGitFlow §9.2`)}`);
   }
+  if (whys.length) lines.push("", ...whys);
   return lines.join("\n");
 }
 
@@ -222,13 +287,15 @@ function testsTable(guard, checks, checksInvalid) {
     else if (!checksInvalid) result = cleanResult(checks?.[item.command]);
     lines.push(`| ${item.check} | \`${item.command}\` | ${escapeCell(result)} |`);
   }
+  const extras = [];
   if (!checksInvalid && checks && typeof checks === "object") {
     for (const [command, value] of Object.entries(checks)) {
       if (REQUIRED_CHECKS.some((item) => item.command === command)) continue;
       if (command === "pnpm guard") continue;
-      lines.push(`| Extra | \`${escapeCell(command)}\` | ${escapeCell(cleanResult(value))} |`);
+      extras.push(`Extra check (literal):\n\n${fence(`${command}\n${cleanResult(value)}`)}`);
     }
   }
+  if (extras.length) lines.push("", ...extras);
   return lines.join("\n");
 }
 
@@ -390,14 +457,14 @@ function readStdin() {
 if (isCli(import.meta.url)) {
   const args = parseArgs(process.argv.slice(2));
   let report = "";
-  if (args["--report"]) report = readText(args["--report"]);
+  if (args["--report"]) report = readArg(args["--report"]);
   else if (!process.stdin.isTTY) report = readStdin();
 
   let checks = {};
   let checksInvalid = false;
   if (args["--checks"]) {
     try {
-      const parsed = JSON.parse(readText(args["--checks"]));
+      const parsed = JSON.parse(readArg(args["--checks"]));
       if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) checksInvalid = true;
       else checks = parsed;
     } catch {
@@ -406,21 +473,31 @@ if (isCli(import.meta.url)) {
   }
 
   let codeowners = "";
-  try {
-    codeowners = readText(args["--codeowners"] || join(ROOT, ".github/CODEOWNERS"));
-  } catch {
-    codeowners = "";
+  if (args["--codeowners"]) {
+    const supplied = readArg(args["--codeowners"]);
+    const trusted = trustedStaffEng(supplied, originMainCodeowners());
+    codeowners = trusted.map((login) => `* @${login}`).join("\n");
   }
 
   process.stdout.write(
     formatReviewComment({
       report,
       ref: args["--ref"] || "",
-      prBody: args["--pr-body"] ? readText(args["--pr-body"]) : undefined,
+      prBody: args["--pr-body"] ? readArg(args["--pr-body"]) : undefined,
       checks,
       checksInvalid,
-      reviewNotes: args["--review-notes"] ? readText(args["--review-notes"]) : undefined,
+      reviewNotes: args["--review-notes"] ? readArg(args["--review-notes"]) : undefined,
       codeowners,
     }),
   );
+}
+
+function readArg(filePath) {
+  try {
+    assertInsideTemp(filePath);
+  } catch (error) {
+    process.stderr.write(`${error.message}\n`);
+    process.exit(1);
+  }
+  return readText(filePath);
 }

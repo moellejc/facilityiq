@@ -76,13 +76,15 @@ Spec: [`automations/pr-guardrail-review.md`](../automations/pr-guardrail-review.
 
 Joe creates the automation in the Cursor UI (`cursor.com/automations` or `/automate`). **It is not live until he does.** This repository does not create or enable it. GitHub Actions does not post the comment.
 
-On **Pull request opened** for `moellejc/facilityiq`, the agent runs `node scripts/guard/pre-pr.mjs` and posts one comment. `scripts/guard/format-review-comment.mjs` turns that stdout into the comment: verdict, each finding with its rule id and skill doc, and a tests-actually-run table. A result this run did not produce is `not verified`. The agent requests review from the `*` owner in `.github/CODEOWNERS` on the base branch (`@moellejc`) and does not approve, merge, or close.
+On **Pull request opened** for `moellejc/facilityiq`, the agent runs the guard scripts from `origin/main` (`git archive origin/main scripts/guard`) and posts one comment. Pull request copies of those scripts are not executed. `scripts/guard/format-review-comment.mjs` turns that stdout into the comment: verdict, each finding with its rule id and skill doc, and a tests-actually-run table. A result this run did not produce is `not verified`. Staff Eng is the `*` owner in `origin/main:.github/CODEOWNERS` (`@moellejc`). The agent does not approve, merge, or close.
 
 `Draft opened` is a different Cursor trigger and is not selected. Fork pull requests are not supported.
 
 ```bash
-GUARD_BASE=origin/main node scripts/guard/pre-pr.mjs > .guard-report.md
-node scripts/guard/format-review-comment.mjs --report .guard-report.md --ref "$(git rev-parse HEAD)"
+tmp=$(mktemp -d)
+GUARD_BASE=origin/main node scripts/guard/pre-pr.mjs > "$tmp/report.md"
+git show origin/main:.github/CODEOWNERS > "$tmp/CODEOWNERS"
+node scripts/guard/format-review-comment.mjs --report "$tmp/report.md" --codeowners "$tmp/CODEOWNERS" --ref "$(git rev-parse HEAD)"
 ```
 
 ## Not exercised in CI
