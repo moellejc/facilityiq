@@ -6,3 +6,6 @@ coverage
 uploads
 dist
 .pnpm-store
+.guard-report.md
+guard-report.md
+demo/bad-change.patch
