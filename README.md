@@ -115,10 +115,12 @@ Integration tests use `DATABASE_URL_TEST` and apply migrations themselves. They 
 | `pnpm worker`           | Process background jobs         |
 | `pnpm test:unit`        | Permissions, KPI formulas, Zod  |
 | `pnpm test:integration` | Isolation, integrity, RLS, seed |
+| `pnpm guard`            | New boundary and API violations |
+| `pnpm guard:test`       | Guard self-tests                |
 
 ## Layout
 
-Business rules live in `src/server/services`, `src/server/repositories`, and `src/lib`. Route handlers and React components call those modules. KPI definitions are in `docs/KPI_FORMULAS.md`. The architecture plan and the Phase 1 exceptions are in `docs/ARCHITECTURE.md`.
+Business rules live in `src/server/services`, `src/server/repositories`, and `src/lib`. Route handlers and React components call those modules. KPI definitions are in `docs/KPI_FORMULAS.md`. The architecture plan and the Phase 1 exceptions are in `docs/ARCHITECTURE.md`. Pre-PR guardrails are in `docs/guardrails.md`.
 
 ## Local development passwords
 

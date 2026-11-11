@@ -17,7 +17,11 @@
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx src/db/seed/index.ts",
     "worker": "tsx worker/index.ts",
-    "worker:dev": "tsx watch worker/index.ts"
+    "worker:dev": "tsx watch worker/index.ts",
+    "guard": "node scripts/guard/pre-pr.mjs",
+    "guard:baseline": "GUARD_BASELINE=1 GUARD_NO_RATCHET=1 node scripts/guard/pre-pr.mjs",
+    "guard:drift": "node scripts/guard/drift-check.mjs",
+    "guard:test": "node --test scripts/guard/guards.test.mjs"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "1.11.3",

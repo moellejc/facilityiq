@@ -1,0 +1,65 @@
+name: Guardrails
+
+on:
+  pull_request:
+  schedule:
+    - cron: "0 13 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: guardrails-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  guard:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Fetch base branch
+        run: git fetch origin ${{ github.base_ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Guard self-tests
+        run: node --test scripts/guard/guards.test.mjs
+
+      - name: Pre-PR guard
+        env:
+          GUARD_BASE: origin/${{ github.base_ref }}
+          GUARD_SCOPE: ${{ contains(github.event.pull_request.labels.*.name, 'scope:infra') && 'infra' || 'auto' }}
+          GUARD_ALLOW_DEPS: ${{ contains(github.event.pull_request.labels.*.name, 'deps-approved') && '1' || '0' }}
+        run: |
+          node scripts/guard/pre-pr.mjs | tee guard-report.md
+          cat guard-report.md >> "$GITHUB_STEP_SUMMARY"
+
+  deploy-gate:
+    # MOCKED on purpose. Shows where a human release gate plugs in. Nothing is deployed.
+    if: github.event_name == 'pull_request'
+    needs: guard
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mocked deploy gate
+        run: |
+          echo "MOCKED DEPLOY GATE: a human release owner would have to approve before any deploy."
+          echo "Production stays an explicit workflow_dispatch with deploy_production=true (GitFlow section 5.5, CI Process section 3)."
+          echo "Nothing is deployed."
+
+  drift:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Guardrails drift check
+        run: node scripts/guard/drift-check.mjs | tee -a "$GITHUB_STEP_SUMMARY"

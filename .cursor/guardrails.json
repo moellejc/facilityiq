@@ -1,0 +1,190 @@
+{
+  "$comment": "Mechanical guardrails for FacilityIQ. Rules are data so they can be extended without editing the scripts. Each rule cites the Notion standard it enforces and the in-repo skill that explains it. Standards: Coding Conventions, Unit Test Standards, CI Process, SDLC Best Practices, GitFlow. In-repo companions: AGENTS.md, .cursor/rules, docs/ARCHITECTURE.md. develop does not exist; base stays origin/main until a maintainer creates develop.",
+  "version": 1,
+  "verifiedAgainst": { "next": "16", "react": "19", "drizzle-orm": "0.45" },
+  "base": "origin/main",
+  "protected": [
+    ".github/workflows/**",
+    "Dockerfile",
+    "compose.yaml",
+    ".env",
+    ".env.local",
+    ".env.*.local",
+    "pnpm-lock.yaml",
+    ".cursor/guardrails.json",
+    ".cursor/hooks.json",
+    ".cursor/hooks/**",
+    "scripts/guard/**"
+  ],
+  "protectedNote": "Protected paths need GUARD_SCOPE=infra (a reviewed infra change) or an infra-only diff. .env.example is intentionally not protected: Coding Conventions §8 requires documenting new variables there. Secret env files stay protected and unreadable.",
+  "scopes": {
+    "default": {
+      "allow": [
+        "src/**",
+        "tests/**",
+        "docs/**",
+        "worker/**",
+        ".cursor/skills/**",
+        ".cursor/rules/**",
+        ".cursor/commands/**",
+        "AGENTS.md",
+        "README.md"
+      ]
+    },
+    "finance-route": {
+      "allow": [
+        "src/app/(dashboard)/finance/**",
+        "src/components/finance/**",
+        "src/components/layout/navigation.ts",
+        "src/server/services/analytics-service.ts",
+        "src/lib/analytics/**",
+        "tests/**",
+        "docs/**"
+      ]
+    },
+    "infra": {
+      "allow": [
+        ".github/**",
+        "Dockerfile",
+        "compose.yaml",
+        "docker/**",
+        "docs/**",
+        "scripts/**",
+        ".cursor/**",
+        "package.json",
+        "pnpm-lock.yaml",
+        "AGENTS.md",
+        "README.md",
+        "demo/**",
+        ".gitignore",
+        ".prettierignore"
+      ]
+    }
+  },
+  "ratchet": "Guards fail only on new violations in changed files (count above the base branch). Existing debt is reported by pnpm guard:baseline, which exits 0.",
+  "newDependencyPolicy": "A dependency add or version change fails unless GUARD_ALLOW_DEPS=1 (human reviewer, CI label deps-approved).",
+  "importRules": [
+    {
+      "id": "client-imports-server",
+      "appliesTo": "use-client",
+      "forbid": [
+        "^@/server/(services|repositories|http)",
+        "^@/db(/|$)",
+        "^drizzle-orm",
+        "^pg$",
+        "^@aws-sdk/",
+        "^server-only$"
+      ],
+      "message": "A 'use client' file must not import services, repositories, the database, or server-only modules. Server Actions in @/server/actions are the allowed adapter. Pass serializable props from a Server Component.",
+      "skill": "facilityiq-nextjs-app-router",
+      "standard": "Coding Conventions §14–§16; GitFlow §6"
+    },
+    {
+      "id": "route-or-page-imports-db",
+      "appliesTo": ["src/app/**/route.ts", "src/app/**/page.tsx", "src/app/**/layout.tsx"],
+      "forbid": ["^drizzle-orm", "^@/db(/|$)", "^pg$"],
+      "message": "Routes and pages are thin. No Drizzle or SQL here. Call one service.",
+      "skill": "facilityiq-api-routes",
+      "standard": "Coding Conventions §3 and §14; GitFlow §6"
+    },
+    {
+      "id": "route-imports-repository",
+      "appliesTo": ["src/app/api/**/route.ts"],
+      "forbid": ["^@/server/repositories/"],
+      "message": "Route handlers call services, never repositories.",
+      "skill": "facilityiq-services-and-domain-logic",
+      "standard": "Coding Conventions §3 and §14"
+    },
+    {
+      "id": "ui-imports-repository",
+      "appliesTo": ["src/app/**/page.tsx", "src/app/**/layout.tsx", "src/components/**"],
+      "forbid": ["^@/server/repositories/"],
+      "message": "Pages, layouts, and UI components call services. Queries stay in repositories.",
+      "skill": "facilityiq-services-and-domain-logic",
+      "standard": "Coding Conventions §3 and §15"
+    },
+    {
+      "id": "repository-imports-service",
+      "appliesTo": ["src/server/repositories/**"],
+      "forbid": ["^@/server/services/", "^@/app/"],
+      "message": "Layering goes routes to services to repositories. Repositories never reach upward.",
+      "skill": "facilityiq-services-and-domain-logic",
+      "standard": "Coding Conventions §3 and §14"
+    }
+  ],
+  "deprecated": [
+    {
+      "id": "gssp",
+      "pattern": "\\b(getServerSideProps|getStaticProps|getInitialProps)\\b",
+      "files": ["src/**"],
+      "message": "Pages Router data fetching. Use an async Server Component that calls a service.",
+      "skill": "facilityiq-nextjs-app-router",
+      "standard": "Coding Conventions §15 and §17"
+    },
+    {
+      "id": "next-router",
+      "pattern": "from\\s+['\"]next/router['\"]",
+      "files": ["src/**"],
+      "message": "next/router is Pages Router. Use next/navigation.",
+      "skill": "facilityiq-nextjs-app-router",
+      "standard": "Coding Conventions §15 and §17"
+    },
+    {
+      "id": "next-head",
+      "pattern": "from\\s+['\"]next/head['\"]",
+      "files": ["src/**"],
+      "message": "next/head is Pages Router. Use the metadata API or generateMetadata.",
+      "skill": "facilityiq-nextjs-app-router",
+      "standard": "Coding Conventions §15 and §17"
+    },
+    {
+      "id": "legacy-image",
+      "pattern": "from\\s+['\"]next/legacy/image['\"]",
+      "files": ["src/**"],
+      "message": "Legacy image component. Use next/image.",
+      "skill": "facilityiq-ui-design-system",
+      "standard": "Coding Conventions §17 (Pages Router leftovers)"
+    },
+    {
+      "id": "sync-params",
+      "pattern": "\\b(params|searchParams)\\s*:\\s*\\{",
+      "files": ["src/app/**/page.tsx", "src/app/**/layout.tsx", "src/app/**/route.ts"],
+      "message": "In Next 16, params and searchParams are Promises. Type them as Promise<...> and await them.",
+      "skill": "facilityiq-nextjs-app-router",
+      "standard": "Coding Conventions §14 and §16"
+    },
+    {
+      "id": "async-client",
+      "pattern": "export\\s+default\\s+async\\s+function",
+      "files": ["src/**"],
+      "onlyWhen": "use-client",
+      "message": "Async Client Component. Keep data fetching in a Server Component. Async event handlers are fine.",
+      "skill": "facilityiq-nextjs-app-router",
+      "standard": "Coding Conventions §15 and §17"
+    },
+    {
+      "id": "public-secret",
+      "pattern": "NEXT_PUBLIC_[A-Z0-9_]*(SECRET|TOKEN|PASSWORD|PRIVATE|API_KEY)",
+      "files": ["src/**", ".env.example"],
+      "message": "Secrets must never be NEXT_PUBLIC_.",
+      "skill": "facilityiq-security-review",
+      "standard": "Coding Conventions §8; GitFlow §6; CI Process §1"
+    },
+    {
+      "id": "raw-error-to-client",
+      "pattern": "\\.json\\(\\s*\\{[^}]*\\b(err|error|e)\\.(message|stack)",
+      "files": ["src/app/api/**"],
+      "message": "Never return raw error.message or stacks. Throw AppError and let toErrorResponse shape { error: { code, message } }.",
+      "skill": "facilityiq-api-routes",
+      "standard": "Coding Conventions §5 and §14; SDLC Best Practices §4"
+    },
+    {
+      "id": "adhoc-tofixed",
+      "pattern": "\\.toFixed\\(",
+      "files": ["src/app/**", "src/components/**"],
+      "message": "Format numbers with src/lib/format.ts or src/lib/analytics/display.ts. Missing values render as an em dash, never 0.",
+      "skill": "facilityiq-ui-design-system",
+      "standard": "Coding Conventions §9 and §11; Unit Test Standards §3; SDLC Best Practices §4"
+    }
+  ]
+}
