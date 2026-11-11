@@ -185,6 +185,7 @@ Include healthy areas so the demo is not uniformly red.
 - Phase 1 must actually run: lint, typecheck, unit tests, and integration tests against PostgreSQL. Do not claim tests passed unless they ran.
 - GitHub Actions PR workflow covers: install, format, ESLint, `tsc`, unit tests, Postgres service, migrate, integration tests, Next.js build, and a Playwright smoke hook (smoke can be skipped-if-absent in Phase 1 but the workflow should exist).
 - `guardrails.yml` is a separate pull-request workflow: guard self-tests, a ratchet over changed files, and a mocked deploy gate. It does not replace the checks above. See `docs/guardrails.md`. The pnpm version in CI comes from `package.json` `packageManager` only.
+- The opened-PR guardrail comment is not a GitHub Action. The spec is `automations/pr-guardrail-review.md`. It is not live until someone creates it in the Cursor UI.
 - Main-branch workflow: all checks, production image build, vulnerability scan step, GHCR publish (guarded), staging deploy stub that does **not** auto-deploy to production.
 
 Minimum Actions permissions; no secrets committed.
@@ -195,7 +196,7 @@ Follow the specified `facilityiq/` tree (`src/app`, `components/{ui,layout,dashb
 
 Also add `docs/ARCHITECTURE.md` (this plan, kept in-repo) and `docs/KPI_FORMULAS.md`.
 
-Guardrails add `scripts/guard`, `.cursor/guardrails.json`, `.cursor/hooks`, `demo/bad-change.patch` (a fixture, not applied), and `docs/guardrails.md`. Those paths are documented here so they are not an undocumented top-level layout.
+Guardrails add `scripts/guard`, `.cursor/guardrails.json`, `.cursor/hooks`, `demo/bad-change.patch` (a fixture, not applied), and `docs/guardrails.md`. The pull-request review spec is `automations/pr-guardrail-review.md` (not live until created in the Cursor UI). Those paths are documented here so they are not an undocumented top-level layout.
 
 ## 15. Implementation order
 

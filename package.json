@@ -21,7 +21,7 @@
     "guard": "node scripts/guard/pre-pr.mjs",
     "guard:baseline": "GUARD_BASELINE=1 GUARD_NO_RATCHET=1 node scripts/guard/pre-pr.mjs",
     "guard:drift": "node scripts/guard/drift-check.mjs",
-    "guard:test": "node --test scripts/guard/guards.test.mjs"
+    "guard:test": "node --test scripts/guard/guards.test.mjs scripts/guard/format-review-comment.test.mjs"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "1.11.3",

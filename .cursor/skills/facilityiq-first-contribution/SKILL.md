@@ -43,6 +43,7 @@ Load `facilityiq-feature-development` and the domain skills the files touch (`AG
 2. Run the checks in `facilityiq-pr-readiness`. Tick a box only for a command that ran.
 3. Write the PR body from `.github/pull_request_template.md` (GitFlow section 9.2).
 4. Stop. A human reviews and merges. Do not merge, tag, or dispatch a deploy.
+5. `automations/pr-guardrail-review.md` is the spec for a Cursor Automation that comments once and requests Staff Eng review (the `*` owner in `.github/CODEOWNERS`). It is not live until Joe creates it in the Cursor UI. It never approves, merges, or closes.
 
 ## Patterns the guard already rejects
 

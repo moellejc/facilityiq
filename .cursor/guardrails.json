@@ -50,6 +50,7 @@
         "docker/**",
         "docs/**",
         "scripts/**",
+        "automations/**",
         ".cursor/**",
         "package.json",
         "pnpm-lock.yaml",

@@ -11,7 +11,7 @@ pnpm guard:baseline  # inventory existing src debt; always exits 0
 pnpm guard:drift     # installed Next/React/Drizzle still match the rules
 ```
 
-`GUARD_SCOPE` is `default` (product files), `finance-route` (the cost-by-category slice), or `infra` (workflows, guards, hooks). Leave it unset and an infra-only diff selects `infra`. A diff that also touches product code stays on `default`, so a product change cannot quietly edit CI.
+`GUARD_SCOPE` is `default` (product files), `finance-route` (the cost-by-category slice), or `infra` (workflows, guards, hooks, and `automations/`). Leave it unset and an infra-only diff selects `infra`. A diff that also touches product code stays on `default`, so a product change cannot quietly edit CI. `automations/**` is on the infra allow list so the review spec is in scope. That entry does not change the ratchet.
 
 ## What is enforced
 
@@ -70,11 +70,26 @@ git apply -R demo/bad-change.patch
 
 The patch is expected to fail on Pages Router APIs, sync `params`, `.toFixed(`, Drizzle imports, and a client component that imports a service.
 
+## PR guardrail review
+
+Spec: [`automations/pr-guardrail-review.md`](../automations/pr-guardrail-review.md).
+
+Joe creates the automation in the Cursor UI (`cursor.com/automations` or `/automate`). **It is not live until he does.** This repository does not create or enable it. GitHub Actions does not post the comment.
+
+On **Pull request opened** for `moellejc/facilityiq`, the agent runs `node scripts/guard/pre-pr.mjs` and posts one comment. `scripts/guard/format-review-comment.mjs` turns that stdout into the comment: verdict, each finding with its rule id and skill doc, and a tests-actually-run table. A result this run did not produce is `not verified`. The agent requests review from the `*` owner in `.github/CODEOWNERS` on the base branch (`@moellejc`) and does not approve, merge, or close.
+
+`Draft opened` is a different Cursor trigger and is not selected. Fork pull requests are not supported.
+
+```bash
+GUARD_BASE=origin/main node scripts/guard/pre-pr.mjs > .guard-report.md
+node scripts/guard/format-review-comment.mjs --report .guard-report.md --ref "$(git rev-parse HEAD)"
+```
+
 ## Not exercised in CI
 
 - Cursor does not run `.cursor/hooks.json` inside GitHub Actions. The self-tests pipe sample JSON at the hook scripts. That is not a live Cursor session.
 - The deploy-gate job in `.github/workflows/guardrails.yml` prints a mocked gate. It does not deploy. Production remains `workflow_dispatch` with `deploy_production=true` (GitFlow §5.5).
-- Cursor Automations and any Cloud Agents API launcher are not in this change. They belong in a follow-up.
+- The pull-request comment automation is the spec in `automations/pr-guardrail-review.md`. Joe creates it in the Cursor UI. It is not live until he does, and this workflow does not run it. Cursor does not run that trigger on fork pull requests. `Draft opened` is a separate trigger and is not selected.
 
 ## GitFlow deviation
 

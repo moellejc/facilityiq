@@ -48,6 +48,7 @@ Notes:
 - Pin action major versions; keep `concurrency` cancel-in-progress.
 - The pnpm version is `package.json` `packageManager` only. `pnpm/action-setup` must not also set `version`, or the Enable pnpm step fails before install.
 - `.github/workflows/guardrails.yml` is an extra pull-request and weekly workflow (guard self-tests, `pnpm guard` equivalent, a mocked deploy gate, drift). It does not replace the check order above. Notion CI Process does not mention it yet.
+- The opened-PR guardrail comment is not that workflow. The spec is `automations/pr-guardrail-review.md`. It is not live until Joe creates it in the Cursor UI (`cursor.com/automations`). GitHub Actions does not post that comment.
 - Keep CI env in sync with `.env.example` and `vitest.integration.config.ts` when adding variables.
 - Changing step order or removing a check needs a standards decision — update Notion CI Process and this skill.
 
