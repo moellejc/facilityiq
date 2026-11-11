@@ -1,7 +1,15 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { matchesAny } from "../guard/lib.mjs";
@@ -152,6 +160,66 @@ test("apply then revert restores the guard config and the skill", () => {
       readFileSync(join(root, ".cursor/skills/nextjs-caching-and-revalidation/SKILL.md"), "utf8"),
       skill,
     );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("dry run refuses a symlink and leaves the outside file unchanged", () => {
+  const { root } = tempRepo();
+  const outside = join(dirname(root), "drift-outside.txt");
+  writeFileSync(outside, "OUTSIDE");
+  symlinkSync(outside, join(root, "demo/drift-watcher/SAMPLE-PR.md"));
+  try {
+    assert.throws(
+      () => runDemo({ root, mode: "dry-run", fixturePath: FIXTURE_PATH }),
+      /Refused symlink/,
+    );
+    assert.equal(readFileSync(outside, "utf8"), "OUTSIDE");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+    rmSync(outside, { force: true });
+  }
+});
+
+test("revert writes nothing when a manifest path leaves the repo", () => {
+  const { root, guard } = tempRepo();
+  const canary = join(dirname(root), "revert-canary.txt");
+  rmSync(canary, { force: true });
+  writeFileSync(
+    join(root, "demo/drift-watcher/.apply-manifest.json"),
+    JSON.stringify({
+      simulated: true,
+      label: "SIMULATED",
+      files: {
+        "../revert-canary.txt": "REVERT_CANARY",
+        ".cursor/guardrails.json": "overwritten",
+      },
+    }),
+  );
+  try {
+    assert.throws(() => runDemo({ root, mode: "revert" }), /Refused path/);
+    assert.equal(existsSync(canary), false);
+    assert.equal(readFileSync(join(root, ".cursor/guardrails.json"), "utf8"), guard);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+    rmSync(canary, { force: true });
+  }
+});
+
+test("revert refuses a hook path inside the repo", () => {
+  const { root } = tempRepo();
+  writeFileSync(
+    join(root, "demo/drift-watcher/.apply-manifest.json"),
+    JSON.stringify({
+      simulated: true,
+      label: "SIMULATED",
+      files: { ".git/hooks/pre-commit": "#!/bin/sh\n" },
+    }),
+  );
+  try {
+    assert.throws(() => runDemo({ root, mode: "revert" }), /Refused path/);
+    assert.equal(existsSync(join(root, ".git/hooks/pre-commit")), false);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

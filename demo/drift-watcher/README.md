@@ -20,7 +20,7 @@ That reads `SIMULATED-unstable-cache-release.md` and writes three review artifac
 | `SIMULATED-deprecated-entry.json` | The deprecated-list entry the diff would append                                   |
 | `SAMPLE-PR.md`                    | Sample pull request body, marked SIMULATED                                        |
 
-The default command does not modify `.cursor/guardrails.json` or any skill. Those two files are the live guard config. The diff is the result to review.
+The default command does not modify `.cursor/guardrails.json` or any skill. Those two files are the live guard config. The diff is the result to review. The script writes only those two live files, the apply manifest, and the three demo outputs above. It refuses a symlink and any other path.
 
 `node --test scripts/drift-watcher/run-demo.test.mjs` checks that a fresh proposal matches the committed artifacts and that a dry run leaves the guard config unchanged.
 
