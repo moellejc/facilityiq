@@ -48,4 +48,14 @@ Source: Notion "FacilityIQ Engineering Standards" (Coding Conventions §1–3, �
 | `compose.yaml`, `docker/`, `.env.example`                                              | `facilityiq-local-env-config`                                                           |
 | `docs/`, `README.md`, `AGENTS.md`, skills                                              | `facilityiq-documentation-updates`                                                      |
 
+Decision skills sit beside that index. They link to the domain skill instead of repeating it.
+
+| Decision                                            | Skill                                   | Domain skill                                              |
+| --------------------------------------------------- | --------------------------------------- | --------------------------------------------------------- |
+| Which App Router files to add                       | `nextjs-app-router-route`               | `facilityiq-nextjs-app-router`, `facilityiq-api-routes`   |
+| Server Action or Route Handler                      | `nextjs-server-action-vs-route-handler` | `facilityiq-api-routes`, `facilityiq-ui-states-and-forms` |
+| What `revalidatePath` / `revalidateTag` do          | `nextjs-caching-and-revalidation`       | `facilityiq-client-state-and-caching`                     |
+| Next.js release notes, codemod, deprecated-API list | `nextjs-upgrade-assistant`              | `facilityiq-dependency-upgrades`                          |
+| First PR                                            | `facilityiq-first-contribution`         | the workflow table in `AGENTS.md`                         |
+
 Organize by domain inside these folders. Don't invent new top-level locations without updating `docs/ARCHITECTURE.md`.
