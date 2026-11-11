@@ -76,7 +76,7 @@ Agents never merge. Agents never push to `main`. The shell hook's deny list cove
 
 ## Launcher (optional, UNTESTED)
 
-`scripts/cursor-api/launch-agent.mjs` is the explicit Cloud Agents API bridge. It reads `CURSOR_API_KEY` only from the environment. It does not read `.env`, does not accept the key as an argument, and does not print the key. The variable is commented out in `.env.example` so it is documented and unset. The app, worker, Compose, and CI do not read it.
+`scripts/cursor-api/launch-agent.mjs` is the explicit Cloud Agents API bridge. It reads `CURSOR_API_KEY` only from the environment. It does not read `.env`, does not accept the key as an argument, and does not print the key. Printed success bodies are an allowlist: launch ids, status (`ACTIVE` / `IDLE` / `ARCHIVED` and the documented run statuses), GitHub pull request URLs, and steer `delivery` plus `runId`. Every stdout and stderr line from a command that has the key is passed through `redact`. A `latestRunId` that is not `run-<uuid>` is rejected and is not placed in a URL. Raw response bodies are not printed. The variable is commented out in `.env.example` so it is documented and unset. The app, worker, Compose, and CI do not read it.
 
 ```bash
 node scripts/cursor-api/launch-agent.mjs --help
@@ -90,7 +90,7 @@ CURSOR_API_KEY=... node scripts/cursor-api/launch-agent.mjs steer bc-00000000-00
 
 `--ref <branch>` changes `startingRef` (default `main`, because `develop` does not exist). It does not turn on `workOnCurrentBranch`.
 
-Local tests in `scripts/cursor-api/launch-agent.test.mjs` cover argument checks, the plan-mode default, and redaction. They do not call `api.cursor.com`. A live key was not used. Treat every API field as **UNTESTED** until someone runs it and records the HTTP result.
+Local tests in `scripts/cursor-api/launch-agent.test.mjs` cover argument checks, the plan-mode default, HTTP error redaction, the `workOnCurrentBranch` refusal (the injected `fetch` is not called), and success-body allowlisting. They do not call `api.cursor.com`. A live key was not used. Treat every API field as **UNTESTED** until someone runs it and records the HTTP result.
 
 The script does not post to Slack and does not comment on Linear. Those posts are the Staff Eng bot's step 5 and step 8. Wiring either post to this script is **not verified**.
 

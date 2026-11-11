@@ -27,6 +27,18 @@ const API = "https://api.cursor.com";
 const REPO = "https://github.com/moellejc/facilityiq";
 const TICKET_RE = /^FAIQ-\d+$/;
 const AGENT_RE = /^bc-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const RUN_RE = /^run-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const PR_RE = /^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/pull\/\d+$/;
+const AGENT_STATUS = new Set(["ACTIVE", "IDLE", "ARCHIVED"]);
+const RUN_STATUS = new Set([
+  "CREATING",
+  "RUNNING",
+  "WAITING_FOR_BACKGROUND_WORK",
+  "FINISHED",
+  "ERROR",
+  "CANCELLED",
+  "EXPIRED",
+]);
 
 export function usage() {
   return [
@@ -72,6 +84,22 @@ export function assertTicket(ticket) {
 export function assertAgentId(id) {
   if (!AGENT_RE.test(id ?? "")) throw new Error("agent id must look like bc-<uuid>");
   return id;
+}
+
+export function assertRunId(id) {
+  if (!RUN_RE.test(id ?? "")) throw new Error("run id must look like run-<uuid>");
+  return id;
+}
+
+export function runPath(agentId, latestRunId) {
+  const agent = assertAgentId(agentId);
+  if (latestRunId == null || latestRunId === "") return null;
+  const runId = assertRunId(latestRunId);
+  return `/v1/agents/${agent}/runs/${runId}`;
+}
+
+function allowId(value, pattern) {
+  return pattern.test(value ?? "") ? value : null;
 }
 
 function assertText(text) {
@@ -153,23 +181,82 @@ export function buildLaunchBody({ ticket, text, agentMode = false, startingRef =
   };
 }
 
-async function call(method, path, body, key) {
+export function launchSummary(out, body) {
+  const agentId = allowId(out?.agent?.id, AGENT_RE);
+  const runId = allowId(out?.run?.id, RUN_RE);
+  const url =
+    agentId && out?.agent?.url === `https://cursor.com/agents/${agentId}` ? out.agent.url : null;
+  return {
+    untested: true,
+    agent: agentId,
+    url,
+    run: runId,
+    mode: body?.mode === "plan" || body?.mode === "agent" ? body.mode : null,
+    workOnCurrentBranch: false,
+    autoCreatePR: body?.autoCreatePR === true,
+  };
+}
+
+export function statusSummary(agent, run) {
+  const prs = Array.isArray(run?.git?.branches)
+    ? run.git.branches
+        .map((branch) => branch?.prUrl)
+        .filter((url) => typeof url === "string" && PR_RE.test(url))
+    : [];
+  return {
+    untested: true,
+    agent: AGENT_STATUS.has(agent?.status) ? agent.status : null,
+    run: RUN_STATUS.has(run?.status) ? run.status : null,
+    pr: prs,
+    summary: typeof run?.result === "string" ? run.result.slice(0, 500) : null,
+  };
+}
+
+export function steerSummary(payload) {
+  const delivery =
+    payload?.delivery === "steered" || payload?.delivery === "queued" ? payload.delivery : null;
+  return {
+    untested: true,
+    delivery,
+    runId: allowId(payload?.runId, RUN_RE),
+  };
+}
+
+export function toPrintedJson(value, key) {
+  return redact(JSON.stringify(value, null, 2), key);
+}
+
+export async function call(method, path, body, key, fetchImpl = fetch) {
   if (body?.workOnCurrentBranch === true) {
     throw new Error("refusing to send workOnCurrentBranch true");
   }
-  const response = await fetch(API + path, {
-    method,
-    headers: {
-      Authorization: `Basic ${Buffer.from(`${key}:`).toString("base64")}`,
-      "Content-Type": "application/json",
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  if (typeof path !== "string" || !path.startsWith("/v1/") || path.includes("..")) {
+    throw new Error("refusing a path outside /v1/");
+  }
+  let response;
+  try {
+    response = await fetchImpl(API + path, {
+      method,
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${key}:`).toString("base64")}`,
+        "Content-Type": "application/json",
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`${method} ${path} -> request failed: ${redact(message, key)}`);
+  }
   const text = await response.text();
   if (!response.ok) {
     throw new Error(`${method} ${path} -> ${response.status}: ${redact(text, key)}`);
   }
-  return text ? JSON.parse(text) : {};
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(`${method} ${path} -> response was not JSON`);
+  }
 }
 
 async function main() {
@@ -177,8 +264,9 @@ async function main() {
   try {
     parsed = parseArgs(process.argv.slice(2));
   } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error));
-    console.error(usage());
+    const key = process.env.CURSOR_API_KEY;
+    console.error(redact(error instanceof Error ? error.message : String(error), key));
+    console.error(redact(usage(), key));
     process.exit(2);
   }
   if (parsed.help) {
@@ -196,49 +284,14 @@ async function main() {
     if (parsed.cmd === "launch") {
       const body = buildLaunchBody(parsed);
       const out = await call("POST", "/v1/agents", body, key);
-      console.log(
-        JSON.stringify(
-          {
-            untested: true,
-            agent: out.agent?.id ?? null,
-            url: out.agent?.url ?? null,
-            run: out.run?.id ?? null,
-            mode: body.mode,
-            workOnCurrentBranch: body.workOnCurrentBranch,
-            autoCreatePR: body.autoCreatePR,
-          },
-          null,
-          2,
-        ),
-      );
+      console.log(toPrintedJson(launchSummary(out, body), key));
       return;
     }
     if (parsed.cmd === "status") {
       const agent = await call("GET", `/v1/agents/${parsed.agentId}`, undefined, key);
-      const run = agent.latestRunId
-        ? await call(
-            "GET",
-            `/v1/agents/${parsed.agentId}/runs/${agent.latestRunId}`,
-            undefined,
-            key,
-          )
-        : {};
-      const prs = Array.isArray(run.git?.branches)
-        ? run.git.branches.map((branch) => branch.prUrl).filter(Boolean)
-        : [];
-      console.log(
-        JSON.stringify(
-          {
-            untested: true,
-            agent: agent.status ?? null,
-            run: run.status ?? null,
-            pr: prs,
-            summary: typeof run.result === "string" ? run.result.slice(0, 500) : null,
-          },
-          null,
-          2,
-        ),
-      );
+      const path = runPath(parsed.agentId, agent.latestRunId);
+      const run = path ? await call("GET", path, undefined, key) : {};
+      console.log(toPrintedJson(statusSummary(agent, run), key));
       return;
     }
     const steered = await call(
@@ -247,7 +300,7 @@ async function main() {
       { prompt: { text: parsed.text }, delivery: "steer" },
       key,
     );
-    console.log(JSON.stringify({ untested: true, ...steered }, null, 2));
+    console.log(toPrintedJson(steerSummary(steered), key));
   } catch (error) {
     console.error(redact(error instanceof Error ? error.message : String(error), key));
     process.exit(1);

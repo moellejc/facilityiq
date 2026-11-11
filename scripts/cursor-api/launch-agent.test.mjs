@@ -3,7 +3,18 @@ import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { assertStartingRef, buildLaunchBody, parseArgs, redact } from "./launch-agent.mjs";
+import {
+  assertRunId,
+  assertStartingRef,
+  buildLaunchBody,
+  call,
+  parseArgs,
+  redact,
+  runPath,
+  statusSummary,
+  steerSummary,
+  toPrintedJson,
+} from "./launch-agent.mjs";
 
 const script = join(dirname(fileURLToPath(import.meta.url)), "launch-agent.mjs");
 const SECRET = "cursor_test_key_do_not_leak";
@@ -96,6 +107,74 @@ test("a real command without a key exits 2 and does not call the network", () =>
   assert.match(result.stderr, /Set CURSOR_API_KEY/);
   assert.equal(result.stdout.includes("api.cursor.com"), false);
   assert.equal(result.stderr.includes("api.cursor.com"), false);
+});
+
+const AGENT = "bc-00000000-0000-0000-0000-000000000001";
+const RUN = "run-00000000-0000-0000-0000-000000000001";
+
+test("call redacts an error body and does not fetch when workOnCurrentBranch is true", async () => {
+  let calls = 0;
+  const fetchImpl = async () => {
+    calls += 1;
+    return { ok: false, status: 500, text: async () => `leaked ${SECRET}` };
+  };
+  await assert.rejects(
+    () => call("POST", "/v1/agents", { workOnCurrentBranch: true }, SECRET, fetchImpl),
+    /refusing to send workOnCurrentBranch true/,
+  );
+  assert.equal(calls, 0);
+
+  await assert.rejects(
+    () => call("GET", "/v1/agents/" + AGENT, undefined, SECRET, fetchImpl),
+    (error) => {
+      assert.equal(error.message.includes(SECRET), false);
+      assert.match(error.message, /\[redacted\]/);
+      return true;
+    },
+  );
+  assert.equal(calls, 1);
+});
+
+test("a latestRunId that is not a run id is rejected and is not put in a URL", () => {
+  assert.equal(runPath(AGENT, RUN), `/v1/agents/${AGENT}/runs/${RUN}`);
+  assert.throws(() => runPath(AGENT, SECRET), /run id/);
+  try {
+    runPath(AGENT, SECRET);
+  } catch (error) {
+    assert.equal(error.message.includes(SECRET), false);
+  }
+  assert.throws(() => assertRunId("../etc/passwd"), /run id/);
+});
+
+test("steer and status success text drops unknown fields and redacts the key", () => {
+  const steered = steerSummary({
+    delivery: "steered",
+    runId: RUN,
+    extra: SECRET,
+    prompt: { text: SECRET },
+  });
+  const steeredText = toPrintedJson(steered, SECRET);
+  assert.equal(steeredText.includes(SECRET), false);
+  assert.deepEqual(JSON.parse(steeredText), { untested: true, delivery: "steered", runId: RUN });
+
+  const status = statusSummary(
+    { status: "IDLE", latestRunId: SECRET, token: SECRET },
+    {
+      status: "FINISHED",
+      result: `ready ${SECRET}`,
+      git: {
+        branches: [
+          { prUrl: "https://github.com/moellejc/facilityiq/pull/4" },
+          { prUrl: `https://github.com/moellejc/facilityiq/pull/4?key=${SECRET}` },
+        ],
+      },
+    },
+  );
+  const statusText = toPrintedJson(status, SECRET);
+  assert.equal(statusText.includes(SECRET), false);
+  assert.match(statusText, /\[redacted\]/);
+  assert.deepEqual(JSON.parse(statusText).pr, ["https://github.com/moellejc/facilityiq/pull/4"]);
+  assert.equal(JSON.parse(statusText).agent, "IDLE");
 });
 
 test("invalid ids fail before any request and do not echo the key", () => {
