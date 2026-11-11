@@ -120,7 +120,7 @@ Integration tests use `DATABASE_URL_TEST` and apply migrations themselves. They 
 
 ## Layout
 
-Business rules live in `src/server/services`, `src/server/repositories`, and `src/lib`. Route handlers and React components call those modules. KPI definitions are in `docs/KPI_FORMULAS.md`. The architecture plan and the Phase 1 exceptions are in `docs/ARCHITECTURE.md`. Pre-PR guardrails are in `docs/guardrails.md`.
+Business rules live in `src/server/services`, `src/server/repositories`, and `src/lib`. Route handlers and React components call those modules. KPI definitions are in `docs/KPI_FORMULAS.md`. The architecture plan and the Phase 1 exceptions are in `docs/ARCHITECTURE.md`. Pre-PR guardrails are in `docs/guardrails.md`. The Slack → Linear → pull request flow is specified in `automations/slack-linear-agent-pr.md` and `bot/approval-flow.md`. `node scripts/cursor-api/launch-agent.mjs --help` prints the Cloud Agents helper. That helper is UNTESTED against a live key.
 
 ## Local development passwords
 

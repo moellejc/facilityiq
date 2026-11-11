@@ -197,6 +197,8 @@ Also add `docs/ARCHITECTURE.md` (this plan, kept in-repo) and `docs/KPI_FORMULAS
 
 Guardrails add `scripts/guard`, `.cursor/guardrails.json`, `.cursor/hooks`, `demo/bad-change.patch` (a fixture, not applied), and `docs/guardrails.md`. Those paths are documented here so they are not an undocumented top-level layout.
 
+`bot/approval-flow.md` and `automations/*.md` are process specs, not product code. They describe the Slack → Linear → Cloud Agent → PR path and its human merge gate. Committing a spec does not create a Cursor Automation. `scripts/cursor-api/launch-agent.mjs` is a Cloud Agents API helper and is UNTESTED against a live key.
+
 ## 15. Implementation order
 
 1. **Phase 1 — Foundation (this increment):** Next.js + Tailwind + shadcn, Drizzle + full schema + migrations, Auth.js + orgs/roles, dashboard shell, Docker Compose (app, worker, postgres, minio), seed, README, CI workflows, tests for permissions and org isolation.
