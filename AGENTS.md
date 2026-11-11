@@ -28,6 +28,8 @@ Skills live in `.cursor/skills/<name>/SKILL.md`. Read the whole skill before act
 
 Every code change ends with `facilityiq-pr-readiness`. Run `pnpm guard` before that. What the guard enforces, and what stays advisory, is in `docs/guardrails.md`. The `/first-pr` command follows the first-contribution skill. GitFlow says feature PRs target `develop`; this repo has no `develop` branch, so PRs target `main` until a maintainer creates it.
 
+`automations/nextjs-drift-watcher.md` is the spec for a Cursor Automation that opens a pull request when Next.js release notes change the deprecated list or the Next.js skills. Joe creates that automation in the Cursor UI. It only opens pull requests. The procedure it follows is `nextjs-upgrade-assistant`.
+
 ## 2. Load the domain skills for the areas you touch
 
 **Frontend**

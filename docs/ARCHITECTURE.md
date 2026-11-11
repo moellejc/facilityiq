@@ -184,7 +184,7 @@ Include healthy areas so the demo is not uniformly red.
 - Component/e2e (later phases): 3D selection, heatmaps, login → facility → twin → select asset → scenario.
 - Phase 1 must actually run: lint, typecheck, unit tests, and integration tests against PostgreSQL. Do not claim tests passed unless they ran.
 - GitHub Actions PR workflow covers: install, format, ESLint, `tsc`, unit tests, Postgres service, migrate, integration tests, Next.js build, and a Playwright smoke hook (smoke can be skipped-if-absent in Phase 1 but the workflow should exist).
-- `guardrails.yml` is a separate pull-request workflow: guard self-tests, a ratchet over changed files, and a mocked deploy gate. It does not replace the checks above. See `docs/guardrails.md`. The pnpm version in CI comes from `package.json` `packageManager` only.
+- `guardrails.yml` is a separate pull-request workflow: guard self-tests, a ratchet over changed files, and a mocked deploy gate. It does not replace the checks above. See `docs/guardrails.md`. The pnpm version in CI comes from `package.json` `packageManager` only. Its `drift` job (cron `0 13 * * 1`) runs `scripts/guard/drift-check.mjs`. The Next.js drift watcher spec is `automations/nextjs-drift-watcher.md`. That automation is created in the Cursor UI, only opens pull requests, and does not add a second drift job.
 - Main-branch workflow: all checks, production image build, vulnerability scan step, GHCR publish (guarded), staging deploy stub that does **not** auto-deploy to production.
 
 Minimum Actions permissions; no secrets committed.
@@ -195,7 +195,7 @@ Follow the specified `facilityiq/` tree (`src/app`, `components/{ui,layout,dashb
 
 Also add `docs/ARCHITECTURE.md` (this plan, kept in-repo) and `docs/KPI_FORMULAS.md`.
 
-Guardrails add `scripts/guard`, `.cursor/guardrails.json`, `.cursor/hooks`, `demo/bad-change.patch` (a fixture, not applied), and `docs/guardrails.md`. Those paths are documented here so they are not an undocumented top-level layout.
+Guardrails add `scripts/guard`, `.cursor/guardrails.json`, `.cursor/hooks`, `demo/bad-change.patch` (a fixture, not applied), and `docs/guardrails.md`. The Next.js drift watcher adds `automations/nextjs-drift-watcher.md` (a Cursor Automation spec; Joe creates the automation), `scripts/drift-watcher/` (the SIMULATED dry run), and `demo/drift-watcher/` (a SIMULATED fixture, not applied by default). Those paths are documented here so they are not an undocumented top-level layout.
 
 ## 15. Implementation order
 

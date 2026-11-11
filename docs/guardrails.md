@@ -70,11 +70,29 @@ git apply -R demo/bad-change.patch
 
 The patch is expected to fail on Pages Router APIs, sync `params`, `.toFixed(`, Drizzle imports, and a client component that imports a service.
 
+## Drift watcher
+
+The Cursor Automation spec is `automations/nextjs-drift-watcher.md`. Joe creates it in the Cursor UI. It only opens pull requests. It never merges and never pushes to `main`. Those pull requests target `main` until `develop` exists.
+
+The weekly mechanical check is already the `drift` job in `.github/workflows/guardrails.yml` (cron `0 13 * * 1`, command `node scripts/guard/drift-check.mjs`). The automation does not add a second copy of that job.
+
+`demo/drift-watcher/` is a **SIMULATED** deprecation fixture (`unstable_cache` discouraged in favor of `"use cache"`). That claim is **not verified** and is not a real Next.js deprecation. The dry run does not edit `.cursor/guardrails.json`.
+
+```bash
+node scripts/drift-watcher/run-demo.mjs
+```
+
+That writes `demo/drift-watcher/SIMULATED.diff`, `SIMULATED-deprecated-entry.json`, and `SAMPLE-PR.md`. Apply and revert are documented in `demo/drift-watcher/README.md`. Do not commit an applied checkout.
+
+The caching guide still documents `unstable_cache` for non-`fetch` functions (fetched 2026-11-11): https://nextjs.org/docs/app/guides/caching
+
+Installed `next@16.4.5` recommends replacing `unstable_cache` with the `use cache` directive and says migrating is optional (`node_modules/next/dist/docs/01-app/03-api-reference/04-functions/unstable_cache.md`, `node_modules/next/dist/docs/01-app/02-guides/migrating-to-cache-components.md`). That recommendation is not a deprecation, so it is not a `deprecated[]` rule.
+
 ## Not exercised in CI
 
 - Cursor does not run `.cursor/hooks.json` inside GitHub Actions. The self-tests pipe sample JSON at the hook scripts. That is not a live Cursor session.
 - The deploy-gate job in `.github/workflows/guardrails.yml` prints a mocked gate. It does not deploy. Production remains `workflow_dispatch` with `deploy_production=true` (GitFlow §5.5).
-- Cursor Automations and any Cloud Agents API launcher are not in this change. They belong in a follow-up.
+- The drift watcher spec is committed. The Cursor Automation itself is not created in this repository. Joe creates it in the Cursor UI. No Cloud Agents API launcher is added here.
 
 ## GitFlow deviation
 

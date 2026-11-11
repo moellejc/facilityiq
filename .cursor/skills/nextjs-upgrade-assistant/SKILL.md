@@ -70,6 +70,14 @@ PR target: `main` until `develop` exists. Say that in the GitFlow section. Title
 
 Never merge. Never push to `main`.
 
+## Drift watcher
+
+`automations/nextjs-drift-watcher.md` is the Cursor Automation spec that opens a pull request when a stable Next.js release changes these rules or skills. Joe creates that automation in the Cursor UI. This skill is the procedure it follows for the deprecated list and the skills. The automation only opens pull requests. It never merges. It never pushes to `main`. Its pull requests target `main` until `develop` exists.
+
+The weekly mechanical check is the `drift` job in `.github/workflows/guardrails.yml` (cron `0 13 * * 1`, command `node scripts/guard/drift-check.mjs`). Do not add a second workflow that repeats it.
+
+`demo/drift-watcher/` is a **SIMULATED** fixture (`unstable_cache` discouraged in favor of `"use cache"`). That deprecation claim is **not verified**. Do not copy it into `deprecated[]`. The previous-model guide still documents `unstable_cache`: https://nextjs.org/docs/app/guides/caching (fetched 2026-11-11). Installed `next@16.4.5` recommends replacing it with the `use cache` directive and says migrating is optional (`node_modules/next/dist/docs/01-app/03-api-reference/04-functions/unstable_cache.md`, `node_modules/next/dist/docs/01-app/02-guides/migrating-to-cache-components.md`). A recommendation is not a deprecated-list entry.
+
 ## Guard rules this procedure maintains
 
 The `deprecated` ids today: `gssp`, `next-router`, `next-head`, `legacy-image`, `sync-params`, `async-client`, `public-secret`, `raw-error-to-client`, `adhoc-tofixed`. What they reject is in `nextjs-app-router-route` and `docs/guardrails.md`.
