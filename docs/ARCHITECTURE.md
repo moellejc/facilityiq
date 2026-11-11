@@ -184,7 +184,7 @@ Include healthy areas so the demo is not uniformly red.
 - Component/e2e (later phases): 3D selection, heatmaps, login → facility → twin → select asset → scenario.
 - Phase 1 must actually run: lint, typecheck, unit tests, and integration tests against PostgreSQL. Do not claim tests passed unless they ran.
 - GitHub Actions PR workflow covers: install, format, ESLint, `tsc`, unit tests, Postgres service, migrate, integration tests, Next.js build, and a Playwright smoke hook (smoke can be skipped-if-absent in Phase 1 but the workflow should exist).
-- `guardrails.yml` is a separate pull-request workflow: guard self-tests, a ratchet over changed files, and a mocked deploy gate. It does not replace the checks above. See `docs/guardrails.md`. The pnpm version in CI comes from `package.json` `packageManager` only.
+- `guardrails.yml` is a separate pull-request workflow: guard self-tests, a fingerprint ratchet (rule + source line, whitespace collapsed) over changed files, and a mocked deploy gate. It does not replace the checks above. See `docs/guardrails.md`. The pnpm version in CI comes from `package.json` `packageManager` only.
 - Main-branch workflow: all checks, production image build, vulnerability scan step, GHCR publish (guarded), staging deploy stub that does **not** auto-deploy to production.
 
 Minimum Actions permissions; no secrets committed.

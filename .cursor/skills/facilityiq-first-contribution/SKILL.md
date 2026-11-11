@@ -46,4 +46,4 @@ Load `facilityiq-feature-development` and the domain skills the files touch (`AG
 
 ## Patterns the guard already rejects
 
-`getServerSideProps`, `next/router`, `next/head`, sync `params`, async Client Components, Drizzle in routes or pages, repository imports from routes or pages, client components importing services, `toFixed` in UI, raw `error.message` to clients.
+`getServerSideProps`, `next/router`, `next/head`, sync `params`, async Client Components, Drizzle, `@/db`, or `pg` in routes, pages, or `src/components`, repository imports from routes or pages, client components importing services (Server Actions in `@/server/actions` are allowed), `toFixed` in UI, raw `error.message` to clients.

@@ -48,7 +48,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ f
 - Server by default. Put `'use client'` on the **smallest interactive leaf** (forms, selectors, Recharts, 3D). It pulls its whole import graph into the client bundle.
 - Pass server content into client wrappers via `children` / slot props.
 - Props crossing the boundary: minimal, serializable, authorized DTOs. Never sessions, repositories, DB handles, Three.js objects, or secret-bearing rows.
-- Client components must not import `src/server/**` or `src/db/**`. The `server-only` package is installed but not yet imported anywhere; add `import "server-only"` to new server-only modules (services, repositories, storage, AI providers) so accidental client imports fail at build time.
+- Client files may import `@/server/actions` only. Those modules are the Server Action adapter (`"use server"`; they call the same service as the API). Client files must not import services (`@/server/services`), repositories (`@/server/repositories`), `@/server/http`, or `@/db` (including `drizzle-orm` and `pg`). The guard rule is `client-imports-server`.
+- Notion Coding Conventions §14–§16 should state that same exception. If that page still says a client component cannot import any of `src/server/**`, update it so it matches this skill and `docs/guardrails.md`.
+- The `server-only` package is installed but not yet imported anywhere; add `import "server-only"` to new server-only modules (services, repositories, storage, AI providers) so accidental client imports fail at build time.
 - No async Client Components (`@next/next/no-async-client-component`). Async event handlers are fine.
 
 ## Metadata
