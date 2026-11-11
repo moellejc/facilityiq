@@ -8,6 +8,7 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import {
   COMMENT_MARKER,
+  REQUIRED_CHECKS,
   formatReviewComment,
   parseGuardReport,
   pullRequestBodyFindings,
@@ -203,6 +204,29 @@ test("a missing required section requests changes and links the pull request tem
   assert.match(comment, /Missing section: Demo video\./);
 });
 
+test("the unfilled pull request template demo is still a placeholder", () => {
+  const template = readFileSync(
+    new URL("../../.github/pull_request_template.md", import.meta.url),
+    "utf8",
+  );
+  const findings = pullRequestBodyFindings(template);
+  assert.ok(findings.problems.some((problem) => problem.rule === "pr-body-demo"));
+  const checks = Object.fromEntries(
+    REQUIRED_CHECKS.filter((item) => item.check !== "Guard").map((item) => [item.command, "pass"]),
+  );
+  const comment = formatReviewComment({
+    report: reportFor([]),
+    ref: SHA,
+    prBody: template,
+    reviewNotes: "No blocking checklist findings.\n",
+    checks,
+    codeowners: owners,
+  });
+  assert.match(comment, /\*\*Verdict: Changes requested\*\*/);
+  assert.match(comment, /`pr-body-demo`/);
+  assert.match(comment, /template placeholder/);
+});
+
 test("a complete body with a stated demo reason is not a finding", () => {
   const findings = pullRequestBodyFindings(completeBody());
   assert.equal(findings.verified, true);
@@ -261,6 +285,50 @@ test("cli reads a report piped from another process", () => {
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /\*\*Verdict: Ready for human review\*\*/);
   assert.match(result.stdout, /Staff Eng review requested: @moellejc/);
+});
+
+test("omitting pnpm build leaves that row not verified", () => {
+  const checks = Object.fromEntries(
+    REQUIRED_CHECKS.filter((item) => item.command !== "pnpm build").map((item) => [
+      item.command,
+      "pass",
+    ]),
+  );
+  const comment = formatReviewComment({
+    report: reportFor([]),
+    ref: SHA,
+    checks,
+    codeowners: owners,
+  });
+  assert.match(comment, /\| Build \| `pnpm build` \| not verified \|/);
+  assert.match(comment, /Unverified in this run:.*pnpm build/);
+  assert.match(
+    comment,
+    /\| Guard \| `node scripts\/guard\/pre-pr\.mjs` \| pass — 0 error\(s\), 0 warning\(s\) \|/,
+  );
+});
+
+test("an unusable checks file does not mark rows passed", () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-checks-"));
+  const cases = [join(dir, "bad.json"), join(dir, "array.json"), join(dir, "missing.json")];
+  writeFileSync(cases[0], "not json");
+  writeFileSync(cases[1], '["pnpm lint"]\n');
+  const report = reportFor([]);
+  for (const checks of cases) {
+    const result = spawnSync(
+      process.execPath,
+      ["scripts/guard/format-review-comment.mjs", "--ref", SHA, "--checks", checks],
+      { cwd: ROOT, input: report, encoding: "utf8" },
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(
+      result.stdout,
+      /\| Guard \| `node scripts\/guard\/pre-pr\.mjs` \| pass — 0 error\(s\), 0 warning\(s\) \|/,
+    );
+    assert.match(result.stdout, /\| Lint \| `pnpm lint` \| not verified \|/);
+    assert.match(result.stdout, /\| Build \| `pnpm build` \| not verified \|/);
+    assert.match(result.stdout, /Unverified in this run:.*checks file/);
+  }
 });
 
 test("cli prints one comment from a report on stdin", () => {

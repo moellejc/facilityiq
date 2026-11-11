@@ -16,6 +16,7 @@ export const REQUIRED_CHECKS = [
   { check: "Unit", command: "pnpm test:unit" },
   { check: "Migrate", command: "pnpm db:migrate" },
   { check: "Integration", command: "pnpm test:integration" },
+  { check: "Build", command: "pnpm build" },
   { check: "E2E", command: "pnpm exec playwright test" },
 ];
 
@@ -116,17 +117,23 @@ export function pullRequestBodyFindings(body) {
   const demoHeading = headings.find((heading) => heading.toLowerCase() === "demo video");
   if (demoHeading) {
     const text = (sections.get(demoHeading) || "").replace(/<!--[\s\S]*?-->/g, "").trim();
-    const hasLink = /https?:\/\//.test(text);
-    const hasReason = /not possible|no video was recorded|not recorded|could not record/i.test(
-      text,
-    );
-    if (!hasLink && !hasReason) {
-      const placeholder = text.length === 0 || /^<[^>\n]+>$/.test(text);
+    const boilerplate =
+      text.length === 0 ||
+      /<Link or embed/i.test(text) ||
+      /<reason>/i.test(text) ||
+      /^<[^>\n]+>$/.test(text);
+    if (boilerplate) {
       problems.push({
         rule: "pr-body-demo",
-        message: placeholder
-          ? "Demo video section is empty or still the template placeholder."
-          : "Demo video section has no recording link and no stated reason.",
+        message: "Demo video section is empty or still the template placeholder.",
+      });
+    } else if (
+      !/https?:\/\//.test(text) &&
+      !/not possible|no video was recorded|not recorded|could not record/i.test(text)
+    ) {
+      problems.push({
+        rule: "pr-body-demo",
+        message: "Demo video section has no recording link and no stated reason.",
       });
     }
   }

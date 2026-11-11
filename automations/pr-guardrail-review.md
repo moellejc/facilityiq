@@ -54,7 +54,7 @@ The comment is the stdout of `scripts/guard/format-review-comment.mjs`. Shape:
 - A sentence that this comment does not approve, merge, or close.
 - `Unverified in this run: ...` or `Unverified in this run: none.`
 - Findings table. Guard columns come from the pre-pr table: rule id, location, skill doc, standard, message. Pull request body problems use rule ids `pr-body-section` and `pr-body-demo` and link to `.github/pull_request_template.md` (GitFlow §9.2).
-- Tests table. The guard row is taken from the report (`pass` / `fail` / `not verified`). The script ignores a checks-file entry that tries to mark `node scripts/guard/pre-pr.mjs` or `pnpm guard` as passed. Other rows start as `not verified` and change only when this run recorded that command.
+- Tests table, in CI order through build: format, lint, typecheck, unit, migrate, integration, `pnpm build`, then Playwright. The guard row is taken from the report (`pass` / `fail` / `not verified`). The script ignores a checks-file entry that tries to mark `node scripts/guard/pre-pr.mjs` or `pnpm guard` as passed. Other rows, including `pnpm build`, start as `not verified` and change only when this run recorded that command. A checks file that is missing, not JSON, or not an object leaves those rows `not verified` and adds `checks file` to the unverified list.
 - Pull request body: `not verified`, or the missing sections, or a line that the required sections and demo reason are present.
 - Code review checklist: `not verified`, or the notes file. A line that starts with `BLOCKING:` forces Changes requested.
 - A `<details>` block with the raw `pre-pr.mjs` stdout.
@@ -88,6 +88,7 @@ Staff Eng review requested: @moellejc (`.github/CODEOWNERS`, pattern `*`).
 | Unit        | `pnpm test:unit`                | not verified                    |
 | Migrate     | `pnpm db:migrate`               | not verified                    |
 | Integration | `pnpm test:integration`         | not verified                    |
+| Build       | `pnpm build`                    | not verified                    |
 | E2E         | `pnpm exec playwright test`     | not verified                    |
 ```
 
