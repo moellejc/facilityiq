@@ -3,10 +3,10 @@
 # skills, guards, hooks, and AGENTS.md with a checkout that has those removed.
 # Does not commit, push, or open a pull request. See demo/README.md.
 #
-# Live agent: runs only when CURSOR_API_KEY (or CURSOR_SERVICE_ACCOUNT_KEY)
-# is set in the environment AND the `agent` CLI is on PATH. The key is never
-# printed and never passed as an argument. Otherwise this script prints
-# instructions and labels the live agent "not verified".
+# Live agent: not started by a key alone. Requires DEMO_RUN_AGENT=1, a key in
+# the environment, and the agent CLI. The child gets a scrubbed environment,
+# --sandbox enabled, and the repo's fail-closed hooks on both checkouts.
+# The key is never printed and never passed as an argument.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -19,21 +19,21 @@ base="$(mktemp -d)"
 with_wt="$base/with-setup"
 without_wt="$base/without-setup"
 keep="${DEMO_KEEP_WORKTREES:-0}"
+agent_home=""
 
 cleanup() {
   local status=$?
+  if [[ -n "$agent_home" ]]; then
+    rm -rf "$agent_home"
+  fi
   if [[ "$keep" == "1" ]]; then
     echo
-    echo "DEMO_KEEP_WORKTREES=1, so the worktrees were left in place:"
+    echo "DEMO_KEEP_WORKTREES=1, so the checkouts were left in place:"
     echo "  with setup:    ${with_wt}"
     echo "  without setup: ${without_wt}"
-    echo "Remove them with:"
-    echo "  git worktree remove --force ${with_wt}"
-    echo "  git worktree remove --force ${without_wt}"
+    echo "Remove them with: rm -rf ${base}"
     exit "$status"
   fi
-  git worktree remove --force "$with_wt" >/dev/null 2>&1 || true
-  git worktree remove --force "$without_wt" >/dev/null 2>&1 || true
   rm -rf "$base"
   exit "$status"
 }
@@ -44,8 +44,17 @@ echo "Not product code. The live agent is opt-in and is not part of CI."
 echo "Prompt file: demo/prompt.md"
 echo
 
-git worktree add --detach "$with_wt" HEAD >/dev/null
-git worktree add --detach "$without_wt" HEAD >/dev/null
+# Separate clones, not linked worktrees, so the agent cannot see this
+# checkout through git worktree list. The origin remote is removed so the
+# clone config does not keep this checkout's path.
+make_checkout() {
+  local dest="$1"
+  git clone --local --quiet "$ROOT" "$dest"
+  git -C "$dest" remote remove origin
+}
+
+make_checkout "$with_wt"
+make_checkout "$without_wt"
 
 # The bad-change fixture would bias both agents. Remove it from both trees
 # so the only difference is skills, guards, hooks, and AGENTS.md.
@@ -61,6 +70,13 @@ strip_setup() {
     "$wt/AGENTS.md" \
     "$wt/.cursor/hooks.json" \
     "$wt/.cursor/guardrails.json"
+}
+
+restore_hooks() {
+  local wt="$1"
+  mkdir -p "$wt/.cursor/hooks"
+  cp "$ROOT/.cursor/hooks.json" "$wt/.cursor/hooks.json"
+  cp -a "$ROOT/.cursor/hooks/." "$wt/.cursor/hooks/"
 }
 
 strip_setup "$without_wt"
@@ -83,7 +99,7 @@ report_setup() {
   echo
 }
 
-echo "=== checkouts (verified by this script) ==="
+echo "=== checkouts (verified by this script, before any live agent) ==="
 report_setup "with-setup" "$with_wt"
 report_setup "without-setup" "$without_wt"
 
@@ -91,13 +107,16 @@ key_present=0
 if [[ -n "${CURSOR_API_KEY:-}" || -n "${CURSOR_SERVICE_ACCOUNT_KEY:-}" ]]; then
   key_present=1
 fi
+armed=0
+if [[ "${DEMO_RUN_AGENT:-}" == "1" ]]; then
+  armed=1
+fi
 
-echo "=== live agent ==="
-if [[ "$key_present" -eq 0 ]]; then
+print_not_verified() {
   cat <<'EOF'
 Live agent: not verified.
-No CURSOR_API_KEY or CURSOR_SERVICE_ACCOUNT_KEY in the environment.
-This script does not read a key from the repository.
+This script does not read a key from the repository, and a key already in
+the environment is not permission to start the agent.
 
 To run the same prompt in both checkouts:
 
@@ -105,57 +124,100 @@ To run the same prompt in both checkouts:
      Docs: https://cursor.com/docs/cli/headless
   2. Export CURSOR_API_KEY in your shell. Do not commit it. Do not pass it
      with --api-key (that puts the secret on the command line).
-  3. Re-run: bash demo/with-vs-without.sh
+  3. Re-run: DEMO_RUN_AGENT=1 bash demo/with-vs-without.sh
 
-The script then runs, in each worktree, with the text of demo/prompt.md:
-
-  agent -p --force --trust --output-format text --workspace <worktree> "<prompt text>"
-
-demo/ is removed from both worktrees first, so the bad-change fixture is not visible to the agent. The script then runs node scripts/guard/pre-pr.mjs on the files each agent changed.
+DEMO_RUN_AGENT=1 is required in addition to the key. The agent is then
+started with --sandbox enabled and a scrubbed environment (PATH, a temporary
+HOME, TMPDIR, LANG, and CURSOR_API_KEY only). Fail-closed hooks are restored
+on the stripped checkout before that command. Skills, AGENTS.md,
+guardrails.json, and scripts/guard stay absent there.
 
 The Cloud Agents API (POST https://api.cursor.com/v1/agents) launches against
 a remote git ref and can open a pull request. It cannot see a locally stripped
-worktree, so this comparison uses the local CLI only. This script does not
+checkout, so this comparison uses the local CLI only. This script does not
 call that API.
 
 Set DEMO_KEEP_WORKTREES=1 to inspect the two checkouts instead of deleting them.
 EOF
+}
+
+echo "=== live agent ==="
+if [[ "$armed" -eq 0 || "$key_present" -eq 0 ]]; then
+  if [[ "$armed" -eq 0 && "$key_present" -eq 1 ]]; then
+    echo "A Cursor API key is set, but DEMO_RUN_AGENT is not 1. The agent was not started."
+  elif [[ "$key_present" -eq 0 ]]; then
+    echo "No CURSOR_API_KEY or CURSOR_SERVICE_ACCOUNT_KEY in the environment."
+  fi
+  print_not_verified
   echo
   echo "Guard comparison of agent output: not verified (no live-agent edits to scan)."
   exit 0
 fi
 
 if ! command -v agent >/dev/null 2>&1; then
-  cat <<'EOF'
-Live agent: not verified.
-A Cursor API key is set in the environment, but the `agent` CLI is not on PATH.
-The key was not printed and was not passed on the command line.
-Install: curl https://cursor.com/install -fsS | bash
-Docs: https://cursor.com/docs/cli/headless
-Then re-run: bash demo/with-vs-without.sh
-EOF
+  echo "Live agent: not verified."
+  echo "DEMO_RUN_AGENT=1 and a Cursor API key are set, but the agent CLI is not on PATH."
+  echo "The key was not printed and was not passed on the command line."
+  echo "Install: curl https://cursor.com/install -fsS | bash"
+  echo "Docs: https://cursor.com/docs/cli/headless"
   echo
   echo "Guard comparison of agent output: not verified (CLI missing)."
   exit 0
 fi
 
+echo "Restoring fail-closed hooks before the live agent."
+echo "Skills, AGENTS.md, guardrails.json, and scripts/guard stay stripped on without-setup."
+restore_hooks "$without_wt"
+if [[ ! -f "$with_wt/.cursor/hooks.json" || ! -d "$with_wt/.cursor/hooks" || ! -f "$without_wt/.cursor/hooks.json" || ! -d "$without_wt/.cursor/hooks" ]]; then
+  echo "Refusing to start the agent: fail-closed hooks are missing from a checkout." >&2
+  exit 1
+fi
+echo "=== checkouts the live agent will see ==="
+report_setup "with-setup" "$with_wt"
+report_setup "without-setup" "$without_wt"
+
 run_agent() {
   local label="$1"
   local wt="$2"
+  local agent_key="${CURSOR_API_KEY:-}"
+  if [[ -z "$agent_key" ]]; then
+    agent_key="${CURSOR_SERVICE_ACCOUNT_KEY:-}"
+  fi
+  if [[ ! -f "$wt/.cursor/hooks.json" || ! -d "$wt/.cursor/hooks" ]]; then
+    echo "Refusing to run the live agent in ${label}: fail-closed hooks are missing." >&2
+    exit 1
+  fi
   echo "--- agent ${label} ---"
-  (
-    cd "$wt"
-    if [[ -z "${CURSOR_API_KEY:-}" && -n "${CURSOR_SERVICE_ACCOUNT_KEY:-}" ]]; then
-      export CURSOR_API_KEY="$CURSOR_SERVICE_ACCOUNT_KEY"
-    fi
-    agent -p --force --trust --output-format text --workspace "$wt" "$(cat "$PROMPT_FILE")"
-  )
+  agent_home="$(mktemp -d)"
+  # env -i drops every parent variable, including unrelated secrets.
+  # Only CURSOR_API_KEY is forwarded, never as an argv token.
+  env -i \
+    HOME="$agent_home" \
+    PATH="$PATH" \
+    TMPDIR="${TMPDIR:-/tmp}" \
+    LANG="${LANG:-C.UTF-8}" \
+    CURSOR_API_KEY="$agent_key" \
+    agent -p --force --trust --sandbox enabled --output-format text --workspace "$wt" "$(cat "$PROMPT_FILE")"
+  rm -rf "$agent_home"
+  agent_home=""
   echo
 }
 
-echo "Live agent: running the Cursor CLI in both worktrees. Output below is from this run."
+echo "Live agent: running the Cursor CLI in both checkouts. Output below is from this run."
 run_agent "with-setup" "$with_wt"
 run_agent "without-setup" "$without_wt"
+
+# A relative path the guard may read. Reject commas (GUARD_FILES splits on
+# them), absolute paths, and any '..' segment.
+is_safe_relpath() {
+  local path="$1"
+  [[ -n "$path" ]] || return 1
+  [[ "$path" != /* ]] || return 1
+  [[ "$path" != *","* ]] || return 1
+  [[ "$path" != *".."* ]] || return 1
+  [[ "$path" != *$'\n'* && "$path" != *$'\r'* ]] || return 1
+  return 0
+}
 
 # Setup deletions are ours, not the agent's. Ignore them when collecting edits.
 product_changes() {
@@ -171,6 +233,10 @@ product_changes() {
         continue
         ;;
     esac
+    if ! is_safe_relpath "$path"; then
+      echo "Skipping unsafe path: ${path}" >&2
+      continue
+    fi
     printf '%s\n' "$path"
   done
 }
@@ -202,7 +268,8 @@ run_guard_on() {
   local wt="$2"
   local files="$3"
   local copied=0
-  local joined
+  local joined=""
+  local path
   local out
   echo "=== guard on ${label} ==="
   if [[ -z "$files" ]]; then
@@ -215,7 +282,26 @@ run_guard_on() {
     cp "$ROOT/.cursor/guardrails.json" "$wt/.cursor/guardrails.json"
     copied=1
   fi
-  joined="$(printf '%s\n' "$files" | paste -sd, -)"
+  while IFS= read -r path; do
+    [[ -n "$path" ]] || continue
+    if ! is_safe_relpath "$path"; then
+      echo "Skipping unsafe path: ${path}" >&2
+      continue
+    fi
+    if [[ -n "$joined" ]]; then
+      joined="${joined},${path}"
+    else
+      joined="$path"
+    fi
+  done <<<"$files"
+  if [[ -z "$joined" ]]; then
+    echo "(no safe paths to scan)"
+    echo
+    if [[ "$copied" -eq 1 ]]; then
+      rm -f "$wt/.cursor/guardrails.json"
+    fi
+    return 0
+  fi
   out="$(mktemp)"
   set +e
   GUARD_ROOT="$wt" GUARD_FILES="$joined" node "$ROOT/scripts/guard/pre-pr.mjs" >"$out"

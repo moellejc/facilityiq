@@ -70,13 +70,13 @@ git apply -R demo/bad-change.patch
 
 The patch is expected to fail on Pages Router APIs, sync `params`, `.toFixed(`, Drizzle imports, and a client component that imports a service.
 
-`bash demo/run-guard-demo.sh` does that check on a throwaway worktree of `origin/main`, then applies `demo/fixed-change.patch` to the same files and expects `pnpm guard` to exit 0. It deletes the worktree before it exits. Do not commit the patched `src` files. The pass/fail transcript is in `demo/README.md`. `bash demo/with-vs-without.sh` runs one route-add prompt with and without skills, guards, hooks, and `AGENTS.md`. The live agent is opt-in and is not part of CI.
+`bash demo/run-guard-demo.sh` does that check on a throwaway worktree of `origin/main`, then applies `demo/fixed-change.patch` to the same files and expects `pnpm guard` to exit 0. It deletes the worktree before it exits. Do not commit the patched `src` files. The pass/fail transcript is in `demo/README.md`. `bash demo/with-vs-without.sh` compares one route-add prompt with and without skills, guards, and `AGENTS.md`. A key in the environment does not start the agent. `DEMO_RUN_AGENT=1` does, with `--sandbox enabled`, a scrubbed environment, and the fail-closed hooks restored first. The live agent is not part of CI.
 
 ## Not exercised in CI
 
 - Cursor does not run `.cursor/hooks.json` inside GitHub Actions. The self-tests pipe sample JSON at the hook scripts. That is not a live Cursor session.
 - The deploy-gate job in `.github/workflows/guardrails.yml` prints a mocked gate. It does not deploy. Production remains `workflow_dispatch` with `deploy_production=true` (GitFlow §5.5).
-- Cursor Automations are not created by this repository. `demo/with-vs-without.sh` can launch the local Cursor CLI when `CURSOR_API_KEY` is set. That live run is not part of CI. Without a key, the script labels it "not verified". It does not call the Cloud Agents API.
+- Cursor Automations are not created by this repository. `demo/with-vs-without.sh` can launch the local Cursor CLI only when `DEMO_RUN_AGENT=1` and a Cursor API key are both set. That live run is not part of CI. Otherwise the script labels it "not verified". It does not call the Cloud Agents API.
 
 ## GitFlow deviation
 

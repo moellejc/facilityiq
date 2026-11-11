@@ -10,16 +10,16 @@ Next.js links in the finding map were read from nextjs.org and match `node_modul
 
 ## What is here
 
-| File                 | Role                                                                         |
-| -------------------- | ---------------------------------------------------------------------------- |
-| `bad-change.patch`   | Already on `main`. Deliberately wrong Next.js. `pnpm guard` exits 1.         |
-| `fixed-change.patch` | Delta on top of the bad patch. The same files then pass `pnpm guard`.        |
-| `run-guard-demo.sh`  | Apply-check, fail, fix, pass, revert.                                        |
-| `prompt.md`          | A small dock-status route request. Not the cost-by-category ticket.          |
-| `with-vs-without.sh` | Two worktrees, one with skills, guards, hooks, and `AGENTS.md`, one without. |
-| `doc-map.sh`         | Rule id to doc link. Sourced by the scripts.                                 |
+| File                 | Role                                                                                                                       |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `bad-change.patch`   | Already on `main`. Deliberately wrong Next.js. `pnpm guard` exits 1.                                                       |
+| `fixed-change.patch` | Delta on top of the bad patch. The same files then pass `pnpm guard`.                                                      |
+| `run-guard-demo.sh`  | Apply-check, fail, fix, pass, revert.                                                                                      |
+| `prompt.md`          | A small dock-status route request. Not the cost-by-category ticket.                                                        |
+| `with-vs-without.sh` | Two checkouts, one with skills, guards, hooks, and `AGENTS.md`, one without. The live agent also needs `DEMO_RUN_AGENT=1`. |
+| `doc-map.sh`         | Rule id to doc link. Sourced by the scripts.                                                                               |
 
-`.cursor/rules` stays in both with-vs-without worktrees. `demo/` is removed from both so this bad patch is not sitting in the agent's checkout.
+`.cursor/rules` stays in both checkouts. `demo/` is removed from both so this bad patch is not sitting in the agent's checkout. The checkouts are separate clones, not linked worktrees. A key already in the shell does not start the agent. `DEMO_RUN_AGENT=1` does. That run uses `--sandbox enabled`, a temporary `HOME`, and only `CURSOR_API_KEY` from the parent environment. Fail-closed hooks are copied back onto the stripped checkout before the agent starts. Skills, `AGENTS.md`, `guardrails.json`, and `scripts/guard` stay absent there. `bash demo/with-vs-without.test.sh` covers that gate with a fake `agent` binary. The real CLI was not executed.
 
 ## Run
 
@@ -28,7 +28,7 @@ bash demo/run-guard-demo.sh
 bash demo/with-vs-without.sh
 ```
 
-The second script runs the Cursor CLI only when `CURSOR_API_KEY` or `CURSOR_SERVICE_ACCOUNT_KEY` is set in the environment and `agent` is on `PATH`. It never prints the key and never puts it on the command line. The Cloud Agents API is not called: it targets a remote ref and can open a pull request, so it cannot compare a locally stripped worktree.
+The second script runs the Cursor CLI only when `DEMO_RUN_AGENT=1`, a Cursor API key is set, and `agent` is on `PATH`. It never prints the key and never puts it on the command line. The Cloud Agents API is not called: it targets a remote ref and can open a pull request, so it cannot compare a locally stripped checkout.
 
 ## Guard transcript
 
@@ -194,7 +194,7 @@ demo result: bad change exited non-zero, fixed change exited 0.
 
 ## Same prompt with vs without setup
 
-Live agent: **not verified.** No `CURSOR_API_KEY` or `CURSOR_SERVICE_ACCOUNT_KEY` was set, and this script did not call the Cursor CLI or the Cloud Agents API. The checkout difference below was produced by the script itself.
+Live agent: **not verified.** No `CURSOR_API_KEY` or `CURSOR_SERVICE_ACCOUNT_KEY` was set, and this script did not call the Cursor CLI or the Cloud Agents API. A later check with a fake `agent` binary and a synthetic key confirmed that the key alone does not start the agent; see `demo/with-vs-without.test.sh`. The real CLI was not executed. The checkout difference below was produced by the script itself.
 
 Command: `bash demo/with-vs-without.sh` on 2026-11-11. Script exit code: 0.
 
@@ -203,9 +203,7 @@ FacilityIQ demo: same prompt with vs without setup.
 Not product code. The live agent is opt-in and is not part of CI.
 Prompt file: demo/prompt.md
 
-Preparing worktree (detached HEAD c1f62fd)
-Preparing worktree (detached HEAD c1f62fd)
-=== checkouts (verified by this script) ===
+=== checkouts (verified by this script, before any live agent) ===
 setup with-setup:
   present: AGENTS.md
   present: .cursor/skills
@@ -225,9 +223,10 @@ setup without-setup:
   present: .cursor/rules (intentionally not stripped; both trees keep the rules)
 
 === live agent ===
-Live agent: not verified.
 No CURSOR_API_KEY or CURSOR_SERVICE_ACCOUNT_KEY in the environment.
-This script does not read a key from the repository.
+Live agent: not verified.
+This script does not read a key from the repository, and a key already in
+the environment is not permission to start the agent.
 
 To run the same prompt in both checkouts:
 
@@ -235,17 +234,17 @@ To run the same prompt in both checkouts:
      Docs: https://cursor.com/docs/cli/headless
   2. Export CURSOR_API_KEY in your shell. Do not commit it. Do not pass it
      with --api-key (that puts the secret on the command line).
-  3. Re-run: bash demo/with-vs-without.sh
+  3. Re-run: DEMO_RUN_AGENT=1 bash demo/with-vs-without.sh
 
-The script then runs, in each worktree, with the text of demo/prompt.md:
-
-  agent -p --force --trust --output-format text --workspace <worktree> "<prompt text>"
-
-demo/ is removed from both worktrees first, so the bad-change fixture is not visible to the agent. The script then runs node scripts/guard/pre-pr.mjs on the files each agent changed.
+DEMO_RUN_AGENT=1 is required in addition to the key. The agent is then
+started with --sandbox enabled and a scrubbed environment (PATH, a temporary
+HOME, TMPDIR, LANG, and CURSOR_API_KEY only). Fail-closed hooks are restored
+on the stripped checkout before that command. Skills, AGENTS.md,
+guardrails.json, and scripts/guard stay absent there.
 
 The Cloud Agents API (POST https://api.cursor.com/v1/agents) launches against
 a remote git ref and can open a pull request. It cannot see a locally stripped
-worktree, so this comparison uses the local CLI only. This script does not
+checkout, so this comparison uses the local CLI only. This script does not
 call that API.
 
 Set DEMO_KEEP_WORKTREES=1 to inspect the two checkouts instead of deleting them.
