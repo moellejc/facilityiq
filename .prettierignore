@@ -9,3 +9,4 @@ dist
 .guard-report.md
 guard-report.md
 demo/bad-change.patch
+demo/fixed-change.patch

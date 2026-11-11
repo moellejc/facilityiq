@@ -195,7 +195,7 @@ Follow the specified `facilityiq/` tree (`src/app`, `components/{ui,layout,dashb
 
 Also add `docs/ARCHITECTURE.md` (this plan, kept in-repo) and `docs/KPI_FORMULAS.md`.
 
-Guardrails add `scripts/guard`, `.cursor/guardrails.json`, `.cursor/hooks`, `demo/bad-change.patch` (a fixture, not applied), and `docs/guardrails.md`. Those paths are documented here so they are not an undocumented top-level layout.
+Guardrails add `scripts/guard`, `.cursor/guardrails.json`, `.cursor/hooks`, `docs/guardrails.md`, and `demo/` (fixtures, including `bad-change.patch` and `fixed-change.patch`, never applied to product code). See `demo/README.md`. Those paths are documented here so they are not an undocumented top-level layout.
 
 ## 15. Implementation order
 

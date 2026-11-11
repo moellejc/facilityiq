@@ -107,16 +107,17 @@ Integration tests use `DATABASE_URL_TEST` and apply migrations themselves. They 
 
 ## Useful scripts
 
-| Script                  | Purpose                         |
-| ----------------------- | ------------------------------- |
-| `pnpm dev`              | Next.js on port 43123           |
-| `pnpm db:migrate`       | Apply Drizzle migrations        |
-| `pnpm db:seed`          | Replace the Acme demo data      |
-| `pnpm worker`           | Process background jobs         |
-| `pnpm test:unit`        | Permissions, KPI formulas, Zod  |
-| `pnpm test:integration` | Isolation, integrity, RLS, seed |
-| `pnpm guard`            | New boundary and API violations |
-| `pnpm guard:test`       | Guard self-tests                |
+| Script                        | Purpose                                                  |
+| ----------------------------- | -------------------------------------------------------- |
+| `pnpm dev`                    | Next.js on port 43123                                    |
+| `pnpm db:migrate`             | Apply Drizzle migrations                                 |
+| `pnpm db:seed`                | Replace the Acme demo data                               |
+| `pnpm worker`                 | Process background jobs                                  |
+| `pnpm test:unit`              | Permissions, KPI formulas, Zod                           |
+| `pnpm test:integration`       | Isolation, integrity, RLS, seed                          |
+| `pnpm guard`                  | New boundary and API violations                          |
+| `pnpm guard:test`             | Guard self-tests                                         |
+| `bash demo/run-guard-demo.sh` | Fixture: guard fails, then passes. See `demo/README.md`. |
 
 ## Layout
 
