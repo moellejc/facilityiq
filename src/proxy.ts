@@ -2,13 +2,16 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { SESSION_COOKIE } from "@/lib/auth/cookies";
 
-const PUBLIC_PAGES = new Set(["/", "/sign-in"]);
+const PUBLIC_PAGES = new Set(["/", "/sign-in", "/support/diagnostics"]);
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isAuthApi = pathname.startsWith("/api/auth");
   const isHealth = pathname === "/api/health";
-  const isPublic = PUBLIC_PAGES.has(pathname) || isAuthApi || isHealth;
+  // FAIQ-43 demo only. This path skips the session cookie gate.
+  // Every other API and dashboard route stays gated.
+  const isSecurityDemo = pathname === "/api/support/diagnostics";
+  const isPublic = PUBLIC_PAGES.has(pathname) || isAuthApi || isHealth || isSecurityDemo;
   const signedIn = request.cookies.has(SESSION_COOKIE);
 
   if (pathname.startsWith("/api/") && !isPublic && !signedIn) {

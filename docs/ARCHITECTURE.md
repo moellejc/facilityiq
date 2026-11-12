@@ -42,7 +42,7 @@ Every tenant-owned row is reachable only through the caller's organization.
 5. Enable PostgreSQL row-level security as defense in depth, keyed off `current_setting('app.current_organization_id', true)`.
 6. Validate all inputs with Zod. Return `{ error: { code, message } }` and never leak internal database errors.
 7. Rate-limit auth and upload routes. Audit-log administrative changes (members, roles, settings, layout restores).
-8. Secrets live in environment variables only. AI keys and database URLs must never ship in client bundles.
+8. Secrets live in environment variables only. AI keys and database URLs must never ship in client bundles. The only in-repo credential strings are the labeled fakes in `src/lib/support/demo-credentials.ts`, planted for the FAIQ-43 security-automation demo (section 19). They are not product configuration.
 
 **Roles** (enforced in `src/lib/permissions` and server services, not only hidden in the UI):
 
@@ -62,7 +62,7 @@ The product must run without an external IdP or cloud account.
 - Auth.js tables: `accounts`, `sessions`, `verification_tokens` (plus `users` from the product schema).
 - Seeded Acme Manufacturing users, documented in the README (demo passwords only).
 - Active organization stored in a validated session/cookie. Active facility stored in a validated cookie or search param and checked against the active org on every request.
-- Route groups: `(auth)` for sign-in; `(dashboard)` for the signed-in shell. Middleware protects dashboard and API routes except auth and health.
+- Route groups: `(auth)` for sign-in; `(dashboard)` for the signed-in shell. Middleware protects dashboard and API routes except auth, health, and the FAIQ-43 demo paths in section 19.
 
 ## 5. Data model
 
@@ -101,6 +101,8 @@ Admin mutations use the same services as the admin panel:
 A missing resource in another organization is `404`. A role without the permission is `403`. Facility and integration names are unique per organization; a duplicate is `409`. The last organization administrator cannot be demoted or removed.
 
 Phase 1 implements auth, organization, facility list/get, and health. Remaining routes may return authenticated stubs only if the schema and services are not yet wired; prefer real list/get over fake JSON. Use page/limit pagination (max 100) with `total` for tables, plus filtering and sorting where lists need it.
+
+`GET /api/support/diagnostics` is not part of this product surface. It is the intentional insecure demo in section 19.
 
 ## 7. Frontend information architecture
 
@@ -209,6 +211,8 @@ Also add `docs/ARCHITECTURE.md` (this plan, kept in-repo) and `docs/KPI_FORMULAS
 
 Guardrails add `scripts/guard`, `.cursor/guardrails.json`, `.cursor/hooks`, `demo/bad-change.patch` (a fixture, not applied), and `docs/guardrails.md`. The Next.js drift watcher adds `automations/nextjs-drift-watcher.md` (a Cursor Automation spec; Joe creates the automation), `scripts/drift-watcher/` (the SIMULATED dry run), and `demo/drift-watcher/` (a SIMULATED fixture, not applied by default). Those paths are documented here so they are not an undocumented top-level layout.
 
+`src/lib/support` and `src/server/support` exist only for the FAIQ-43 demo in section 19. They are not a product layer.
+
 `bot/approval-flow.md` and `automations/*.md` are process specs, not product code. `automations/slack-linear-agent-pr.md` describes the Slack → Linear → Cloud Agent → PR path and its human merge gate. `automations/facilityiq-standards.md` and `automations/facilityiq-standards-*.md` are the five report-only FacilityIQ Standards PR-auditor specs (one per Notion standards page); they are not live until Joe creates them in the Cursor UI and disables the old combined automation. Committing a spec does not create a Cursor Automation. `scripts/cursor-api/launch-agent.mjs` is a Cloud Agents API helper and is UNTESTED against a live key.
 
 ## 15. Implementation order
@@ -263,3 +267,16 @@ These are concrete incompatibilities or practical additions. The rest of this do
 `FacilityCanvas` is still loaded with `next/dynamic` and `{ ssr: false }`. Next.js 16 rejects that call inside a Server Component, so `src/components/facilities/twin-loader.tsx` (a client component) performs the import. The twin page stays a Server Component and passes the org-scoped scene DTO in.
 
 Asset rows have no width or height. Procedural body sizes in `src/lib/twin/procedural.ts` are visual defaults. Positions, rotations, names, status, areas, utilization samples, and events come from PostgreSQL. The heatmap toggle does not recolor objects. Layout editing remains on `/facilities/layouts` and does not write.
+
+## 19. Intentional security demo (do not merge)
+
+`/support/diagnostics` and `GET /api/support/diagnostics` are an isolated pipeline demonstration for Linear [FAIQ-43](https://linear.app/acme-ai/issue/FAIQ-43/demo-intentional-security-issues-for-security-automation). They are not a product feature. Do not merge them unless a human explicitly asks. Do not copy them.
+
+Planted issues:
+
+- `src/lib/support/demo-credentials.ts` hardcodes the AWS documentation example credentials and a labeled fake token. They are not live credentials.
+- `src/app/api/support/diagnostics/route.ts` does not check an Auth.js session, organization membership, or a permission, and it trusts a client-supplied `organizationId`. `src/proxy.ts` leaves only that API path and `/support/diagnostics` outside the session-cookie gate.
+- `src/server/support/demo-diagnostics.ts` concatenates that request input into a SQL fragment.
+- `src/app/support/diagnostics/page.tsx` renders the `message` query parameter with `dangerouslySetInnerHTML`.
+
+Product routes still follow sections 3 and 6. Skills still forbid this pattern. The demo is a planted finding so security review can flag it.
