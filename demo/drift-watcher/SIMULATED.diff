@@ -1,7 +1,7 @@
 diff --git a/.cursor/guardrails.json b/.cursor/guardrails.json
 --- a/.cursor/guardrails.json
 +++ b/.cursor/guardrails.json
-@@ -201,6 +201,14 @@
+@@ -191,6 +191,14 @@
        "message": "Format numbers with src/lib/format.ts or src/lib/analytics/display.ts. Missing values render as an em dash, never 0.",
        "skill": "facilityiq-ui-design-system",
        "standard": "Coding Conventions §9 and §11; Unit Test Standards §3; SDLC Best Practices §4"

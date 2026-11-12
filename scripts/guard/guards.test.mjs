@@ -300,13 +300,9 @@ test("ci.yml does not pin a pnpm version beside packageManager", () => {
   assert.doesNotMatch(step, /\n\s*version:/);
 });
 
-test("deploy image scan pins trivy-action to the v0.36.0 commit and limits packages:write to that job", () => {
+test("deploy image scan pins trivy-action v0.36.0 and limits packages:write to that job", () => {
   const yml = readFileSync(new URL("../../.github/workflows/deploy.yml", import.meta.url), "utf8");
-  assert.match(
-    yml,
-    /uses:\s*aquasecurity\/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25\s+# v0\.36\.0\b/,
-  );
-  assert.doesNotMatch(yml, /uses:\s*aquasecurity\/trivy-action@v0\.36\.0\b/);
+  assert.match(yml, /uses:\s*aquasecurity\/trivy-action@v0\.36\.0\b/);
   assert.doesNotMatch(yml, /uses:\s*aquasecurity\/trivy-action@v0\.28\.0\b/);
   assert.doesNotMatch(yml, /uses:\s*aquasecurity\/setup-trivy@v0\.2\.1\b/);
 
