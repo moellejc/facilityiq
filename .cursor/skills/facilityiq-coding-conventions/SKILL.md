@@ -49,3 +49,5 @@ Source: Notion "FacilityIQ Engineering Standards" (Coding Conventions §1–3, �
 | `docs/`, `README.md`, `AGENTS.md`, skills                                              | `facilityiq-documentation-updates`                                                      |
 
 Organize by domain inside these folders. Don't invent new top-level locations without updating `docs/ARCHITECTURE.md`.
+
+`bot/`, `automations/`, and `scripts/cursor-api/` are process specs and an UNTESTED Cloud Agents helper, not product code. `docs/ARCHITECTURE.md` lists them.

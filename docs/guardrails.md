@@ -44,7 +44,7 @@ These are still review and test rules. The guard does not fail them:
 - Tenancy and RLS (Coding Conventions §7, GitFlow §6, Unit Test Standards §2). A repository diff without an obvious isolation test is a **warning** only.
 - Server-side RBAC, including `viewer` read-only and `finance:read` (Coding Conventions §6, Unit Test Standards §4, SDLC §4 and §8).
 - Deterministic KPI, money, and scenario math, and working without `AI_API_KEY` (Coding Conventions §11–§12, GitFlow §6, SDLC §5).
-- Linear Backlog-first intake (Linear workflow §1–§3 and §7).
+- Linear Backlog-first intake (Linear workflow §1–§3 and §7). The delivery spec is `automations/slack-linear-agent-pr.md`.
 - Whether an applied migration was rewritten, versus a new migration added (Coding Conventions §4).
 - Cache keys, idempotency, and list contracts (Coding Conventions §14 and §16).
 
@@ -74,7 +74,9 @@ The patch is expected to fail on Pages Router APIs, sync `params`, `.toFixed(`, 
 
 - Cursor does not run `.cursor/hooks.json` inside GitHub Actions. The self-tests pipe sample JSON at the hook scripts. That is not a live Cursor session.
 - The deploy-gate job in `.github/workflows/guardrails.yml` prints a mocked gate. It does not deploy. Production remains `workflow_dispatch` with `deploy_production=true` (GitFlow §5.5).
-- Cursor Automations and any Cloud Agents API launcher are not in this change. They belong in a follow-up.
+- Cursor Automations are specs under `automations/`. Joe creates them in the Cursor UI. Nothing in this repo proves one is live. Slack posting from an automation is not verified.
+- `scripts/cursor-api/launch-agent.mjs` is UNTESTED against a live `CURSOR_API_KEY`. Its local tests never call `api.cursor.com`.
+- The shell hook denies `gh pr merge` and force-push. It does not pattern-match a plain `git push` of `main`. Agents still must not push to `main`. That push is a process rule, not a hook match.
 
 ## GitFlow deviation
 
