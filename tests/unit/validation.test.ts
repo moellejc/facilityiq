@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  facilityAddressSchema,
   facilityCreateSchema,
   facilityUpdateSchema,
   integrationCreateSchema,
@@ -49,6 +50,70 @@ describe("request schemas", () => {
     expect(facilityUpdateSchema.safeParse({ squareFootage: "-4" }).success).toBe(false);
     expect(facilityUpdateSchema.safeParse({ squareFootage: "10.555" }).success).toBe(false);
     expect(facilityCreateSchema.safeParse({ name: "A" }).success).toBe(false);
+  });
+
+  it("accepts a complete street address and trims each line", () => {
+    expect(
+      facilityAddressSchema.parse({
+        street: "  4800 Harbor Avenue  ",
+        city: " Tacoma ",
+        region: " WA ",
+        postalCode: " 98421 ",
+        country: " United States ",
+      }),
+    ).toEqual({
+      street: "4800 Harbor Avenue",
+      city: "Tacoma",
+      region: "WA",
+      postalCode: "98421",
+      country: "United States",
+    });
+  });
+
+  it("rejects a partial, blank, or oversized street address", () => {
+    expect(facilityAddressSchema.safeParse({ street: "4800 Harbor Avenue" }).success).toBe(false);
+    expect(
+      facilityUpdateSchema.safeParse({
+        address: {
+          street: "   ",
+          city: "Tacoma",
+          region: "WA",
+          postalCode: "98421",
+          country: "United States",
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      facilityCreateSchema.safeParse({
+        name: "North Plant",
+        address: {
+          street: "4800 Harbor Avenue",
+          city: "Tacoma",
+          region: "WA",
+          postalCode: "123456789012345678901",
+          country: "United States",
+        },
+      }).success,
+    ).toBe(false);
+    const blankStreet = facilityAddressSchema.safeParse({
+      street: " ",
+      city: "Tacoma",
+      region: "WA",
+      postalCode: "98421",
+      country: "United States",
+    });
+    expect(blankStreet.success).toBe(false);
+    if (!blankStreet.success) {
+      expect(
+        blankStreet.error.issues.some((issue) => issue.message === "Street is required."),
+      ).toBe(true);
+    }
+  });
+
+  it("allows an address to be omitted or cleared without changing other facility fields", () => {
+    expect(facilityCreateSchema.parse({ name: "North Plant" }).address).toBeUndefined();
+    expect(facilityUpdateSchema.parse({ address: null })).toEqual({ address: null });
+    expect(facilityUpdateSchema.parse({ name: "North Plant" }).address).toBeUndefined();
   });
 
   it("accepts an integration record without a reference", () => {

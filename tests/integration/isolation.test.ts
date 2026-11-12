@@ -17,6 +17,7 @@ import {
   listAreas,
   listAssets,
   listFacilities,
+  updateFacility,
 } from "@/server/repositories/facilities";
 
 const suffix = randomUUID().slice(0, 8);
@@ -82,6 +83,47 @@ describe("organization isolation", () => {
   it("does not fetch another organization's facility by id", async () => {
     expect(await getFacility(orgA, userA, facilityB)).toBeNull();
     expect((await getFacility(orgA, userA, facilityA))?.name).toBe("Plant A");
+  });
+
+  it("does not read or update another organization's street address", async () => {
+    const db = getDb();
+    await db
+      .update(facilities)
+      .set({
+        addressStreet: "9 Secret Road",
+        addressCity: "Hidden",
+        addressRegion: "OR",
+        addressPostalCode: "97000",
+        addressCountry: "United States",
+      })
+      .where(eq(facilities.id, facilityB));
+
+    const own = await listFacilities(orgB, userB);
+    expect(own.find((facility) => facility.id === facilityB)).toMatchObject({
+      addressStreet: "9 Secret Road",
+      addressCity: "Hidden",
+      addressRegion: "OR",
+      addressPostalCode: "97000",
+      addressCountry: "United States",
+    });
+    const other = await listFacilities(orgA, userA);
+    expect(other.find((facility) => facility.id === facilityB)).toBeUndefined();
+    expect(await getFacility(orgA, userA, facilityB)).toBeNull();
+
+    const updated = await updateFacility(orgA, userA, facilityB, {
+      addressStreet: "Stolen Street",
+      addressCity: "Nope",
+      addressRegion: "WA",
+      addressPostalCode: "98000",
+      addressCountry: "United States",
+    });
+    expect(updated.status).toBe("missing");
+
+    const [still] = await db
+      .select({ addressStreet: facilities.addressStreet })
+      .from(facilities)
+      .where(eq(facilities.id, facilityB));
+    expect(still?.addressStreet).toBe("9 Secret Road");
   });
 
   it("hides nested areas and assets when the facility id is from another org", async () => {

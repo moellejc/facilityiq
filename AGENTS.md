@@ -108,3 +108,13 @@ docker compose up --build                  # full local stack (app, worker, post
 - If a skill, a rule, the Notion standards, and the in-repo docs (`docs/ARCHITECTURE.md`, `docs/KPI_FORMULAS.md`, `docs/SCENARIOS.md`, `README.md`) disagree, don't silently pick one. Fix the in-repo doc or skill in the same change, or flag the conflict to the user.
 - Some skills (UI design system, background worker, file storage) are partly derived from current code because Notion doesn't cover those areas in depth yet. Those sections are marked. Follow them, but treat them as existing practice rather than settled standards, and flag anything that seems wrong.
 - When a Notion standard changes, update the matching skill and rule in the same PR. When a repo change alters a convention, update the skill, the rule, and the relevant `docs/` file, and flag the Notion page that needs to change.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

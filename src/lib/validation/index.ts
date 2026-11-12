@@ -68,12 +68,25 @@ const nullableText = (max: number) =>
     return trimmed;
   });
 
+function addressLine(label: string, max: number) {
+  return z.string().trim().min(1, `${label} is required.`).max(max, `${label} is too long.`);
+}
+
+export const facilityAddressSchema = z.object({
+  street: addressLine("Street", 200),
+  city: addressLine("City", 120),
+  region: addressLine("Region", 120),
+  postalCode: addressLine("Postal code", 20),
+  country: addressLine("Country", 80),
+});
+
 export const facilityCreateSchema = z.object({
   name: z.string().trim().min(2).max(120),
   location: nullableText(200).optional(),
   facilityType: z.enum(FACILITY_TYPES).default("warehouse"),
   squareFootage: squareFootageSchema.optional(),
   timezone: z.string().trim().min(1).max(64).default("America/Los_Angeles"),
+  address: facilityAddressSchema.optional(),
 });
 
 export const facilityUpdateSchema = z
@@ -83,6 +96,7 @@ export const facilityUpdateSchema = z
     facilityType: z.enum(FACILITY_TYPES).optional(),
     squareFootage: squareFootageSchema.optional(),
     timezone: z.string().trim().min(1).max(64).optional(),
+    address: facilityAddressSchema.nullable().optional(),
   })
   .refine((value) => Object.values(value).some((item) => item !== undefined), {
     message: "At least one field is required.",

@@ -75,7 +75,9 @@ export default async function AdminPage() {
       <Card>
         <CardHeader>
           <CardTitle>Facilities</CardTitle>
-          <CardDescription>Add a facility, update its details, or remove it.</CardDescription>
+          <CardDescription>
+            Add a facility, update its details or street address, or remove it.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <FacilitiesPanel facilities={context.facilities} />

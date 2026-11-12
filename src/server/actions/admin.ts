@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { ZodError } from "zod";
 
 import { requireRequestContext } from "../services/context";
 import {
@@ -30,6 +31,50 @@ function optionalText(formData: FormData, key: string) {
   const value = formData.get(key);
   if (typeof value !== "string") return null;
   return value;
+}
+
+const ADDRESS_FIELDS = {
+  "address.street": "addressStreet",
+  "address.city": "addressCity",
+  "address.region": "addressRegion",
+  "address.postalCode": "addressPostalCode",
+  "address.country": "addressCountry",
+} as const;
+
+function addressFromForm(formData: FormData) {
+  return {
+    street: text(formData, "addressStreet").trim(),
+    city: text(formData, "addressCity").trim(),
+    region: text(formData, "addressRegion").trim(),
+    postalCode: text(formData, "addressPostalCode").trim(),
+    country: text(formData, "addressCountry").trim(),
+  };
+}
+
+function addressProvided(address: ReturnType<typeof addressFromForm>) {
+  return Boolean(
+    address.street || address.city || address.region || address.postalCode || address.country,
+  );
+}
+
+function facilityFormError(error: unknown, fallback: string): ActionState {
+  if (error instanceof ZodError) {
+    const fieldErrors: Record<string, string> = {};
+    for (const issue of error.issues) {
+      const field = ADDRESS_FIELDS[issue.path.join(".") as keyof typeof ADDRESS_FIELDS];
+      if (field && !fieldErrors[field]) fieldErrors[field] = issue.message;
+    }
+    return {
+      error: Object.values(fieldErrors)[0] ?? "The request is invalid.",
+      ...(Object.keys(fieldErrors).length > 0 ? { fieldErrors } : {}),
+    };
+  }
+  return actionError(error, fallback);
+}
+
+function refreshFacilityViews() {
+  revalidatePath("/admin");
+  revalidatePath("/facilities");
 }
 
 export async function renameOrganizationAction(
@@ -100,17 +145,19 @@ export async function createFacilityAction(
 ): Promise<ActionState> {
   try {
     const context = await requireRequestContext();
+    const address = addressFromForm(formData);
     const facility = await createFacilityRecord(context, {
       name: text(formData, "name"),
       location: optionalText(formData, "location"),
       facilityType: text(formData, "facilityType"),
       squareFootage: optionalText(formData, "squareFootage"),
       timezone: text(formData, "timezone"),
+      ...(addressProvided(address) ? { address } : {}),
     });
     revalidatePath("/", "layout");
     return { ok: `${facility.data.name} was added.` };
   } catch (error) {
-    return actionError(error, "The facility could not be added.");
+    return facilityFormError(error, "The facility could not be added.");
   }
 }
 
@@ -130,7 +177,28 @@ export async function updateFacilityAction(
     revalidatePath("/", "layout");
     return { ok: `${facility.data.name} was saved.` };
   } catch (error) {
-    return actionError(error, "The facility could not be saved.");
+    return facilityFormError(error, "The facility could not be saved.");
+  }
+}
+
+export async function updateFacilityAddressAction(
+  _state: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  try {
+    const context = await requireRequestContext();
+    const clear = formData.get("clearAddress") === "true";
+    const facility = await updateFacilityRecord(context, text(formData, "facilityId"), {
+      address: clear ? null : addressFromForm(formData),
+    });
+    refreshFacilityViews();
+    return {
+      ok: clear
+        ? `Street address removed from ${facility.data.name}.`
+        : `Street address saved for ${facility.data.name}.`,
+    };
+  } catch (error) {
+    return facilityFormError(error, "The street address could not be saved.");
   }
 }
 

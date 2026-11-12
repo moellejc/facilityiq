@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { ZodError } from "zod";
 
 import { getDb } from "@/db";
 import {
@@ -16,6 +17,7 @@ import { AppError } from "@/lib/errors";
 import type { Role } from "@/lib/permissions";
 import {
   createFacilityRecord,
+  readFacilityRecord,
   removeFacilityRecord,
   updateFacilityRecord,
 } from "@/server/services/facility-service";
@@ -200,6 +202,82 @@ describe("admin panel services", () => {
     expect(audit?.action).toBe("facility.delete");
 
     await removeFacilityRecord(context(adminB, orgB, "org_admin"), sameNameOtherOrg.data.id);
+  });
+
+  it("lets an admin set a street address and returns 404 for another organization", async () => {
+    const admin = context(adminA, orgA, "org_admin");
+    const viewer = context(viewerA, orgA, "viewer");
+    const ops = context(opsA, orgA, "operations_manager");
+    const created = await createFacilityRecord(admin, {
+      name: `Address ${suffix}`,
+      facilityType: "warehouse",
+    });
+    expect(created.data.address).toBeNull();
+
+    const address = {
+      street: "  4800 Harbor Avenue ",
+      city: "Tacoma",
+      region: "WA",
+      postalCode: "98421",
+      country: "United States",
+    };
+    await expect(updateFacilityRecord(viewer, created.data.id, { address })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      status: 403,
+    });
+    await expect(updateFacilityRecord(ops, created.data.id, { address })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      status: 403,
+    });
+    await expect(
+      updateFacilityRecord(admin, created.data.id, {
+        address: { street: "4800 Harbor Avenue" },
+      }),
+    ).rejects.toBeInstanceOf(ZodError);
+
+    const [unchanged] = await getDb()
+      .select({ addressStreet: facilities.addressStreet })
+      .from(facilities)
+      .where(eq(facilities.id, created.data.id));
+    expect(unchanged?.addressStreet).toBeNull();
+
+    const saved = await updateFacilityRecord(admin, created.data.id, { address });
+    expect(saved.data.address).toEqual({
+      street: "4800 Harbor Avenue",
+      city: "Tacoma",
+      region: "WA",
+      postalCode: "98421",
+      country: "United States",
+    });
+    expect(saved.data.name).toBe(`Address ${suffix}`);
+
+    const renamed = await updateFacilityRecord(admin, created.data.id, {
+      name: `Address renamed ${suffix}`,
+    });
+    expect(renamed.data.address).toEqual(saved.data.address);
+
+    const visible = await readFacilityRecord(viewer, created.data.id);
+    expect(visible.data.address).toEqual(saved.data.address);
+
+    await expect(updateFacilityRecord(admin, facilityB, { address })).rejects.toMatchObject({
+      code: "NOT_FOUND",
+      status: 404,
+    });
+    await expect(readFacilityRecord(admin, facilityB)).rejects.toMatchObject({
+      code: "NOT_FOUND",
+      status: 404,
+    });
+    const [hidden] = await getDb()
+      .select({ addressStreet: facilities.addressStreet })
+      .from(facilities)
+      .where(eq(facilities.id, facilityB));
+    expect(hidden?.addressStreet).toBeNull();
+
+    const cleared = await updateFacilityRecord(admin, created.data.id, { address: null });
+    expect(cleared.data.address).toBeNull();
+    expect(cleared.data.name).toBe(`Address renamed ${suffix}`);
+
+    await removeFacilityRecord(admin, created.data.id);
   });
 
   it("adds an existing account, blocks duplicates and the last administrator", async () => {

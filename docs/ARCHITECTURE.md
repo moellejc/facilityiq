@@ -80,6 +80,7 @@ Conventions:
 - `timestamptz` for all timestamps; store UTC; display in the viewer's locale.
 - Monetary amounts as `numeric` (amounts `numeric(15,2)`, rates `numeric(18,4)`), with an ISO currency code defaulting to `USD`.
 - JSONB for `metadata`, `layout_data`, scenario `configuration`, insight `evidence`, and similar extension points.
+- Optional facility street address on `facilities`: `address_street`, `address_city`, `address_region`, `address_postal_code`, and `address_country`. All five stay null until an organization administrator sets them. A check constraint requires every column to be null or every column to be non-blank.
 - Foreign keys and indexes, including `(organization_id, recorded_at)` on metrics and `(facility_id)` on areas/assets.
 - Unique `(organization_id, user_id)` on members; globally unique organization `slug`.
 - Drizzle relations defined next to tables.
@@ -95,6 +96,7 @@ App Router handlers under `src/app/api/...` as specified:
 Admin mutations use the same services as the admin panel:
 
 - `POST /api/facilities`, `PATCH /api/facilities/[id]`, `DELETE /api/facilities/[id]` require `facilities:write`. `GET` stays `facilities:read`.
+- Facility create and update accept an optional `address` object with `street`, `city`, `region`, `postalCode`, and `country`. Omit `address` on update to leave it unchanged. Send `null` to clear it. A partial or blank address is `400`. `GET /api/facilities` and `GET /api/facilities/[id]` return `address` or `null`. Only `org_admin` has `facilities:write`. Other roles that can read the facility can see the address and cannot change it.
 - `GET /api/members` requires `members:read`. `POST /api/members`, `PATCH /api/members/[id]`, and `DELETE /api/members/[id]` require `members:write`.
 - `GET`, `POST /api/integrations` and `PATCH`, `DELETE /api/integrations/[id]` require `integrations:manage`.
 
@@ -256,7 +258,7 @@ These are concrete incompatibilities or practical additions. The rest of this do
 
 9. **Financial rows do not double-count conveyor maintenance.** Facility-level maintenance is building overhead ($180/day). CV-01, CV-02, and CV-03 maintenance is stored only on the asset. A later rollup must sum both scopes once each.
 
-10. **Admin panel.** Organization administration lives at `/admin`, gated by the existing `org_admin` permissions (`members:write`, `organization:update`, `facilities:write`, `integrations:manage`, and `settings:manage`). Settings is the personal profile. The `integrations` table is a catalog only. It is not the encrypted SAP connection store, and saving a row does not synchronize data. Adding a member attaches an existing account by email; creating a new account or sending an invitation is not part of this panel. Removing a facility cascades its child rows through the existing foreign keys.
+10. **Admin panel.** Organization administration lives at `/admin`, gated by the existing `org_admin` permissions (`members:write`, `organization:update`, `facilities:write`, `integrations:manage`, and `settings:manage`). Settings is the personal profile. The `integrations` table is a catalog only. It is not the encrypted SAP connection store, and saving a row does not synchronize data. Adding a member attaches an existing account by email; creating a new account or sending an invitation is not part of this panel. Removing a facility cascades its child rows through the existing foreign keys. Organization administrators set a facility street address from this page. Other members see it on Facilities and cannot change it.
 
 ## 18. Phase 2 notes
 

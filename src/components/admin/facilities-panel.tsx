@@ -5,14 +5,21 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FACILITY_TYPE_LABELS, FACILITY_TYPES, type FacilityType } from "@/lib/facilities";
+import {
+  FACILITY_TYPE_LABELS,
+  FACILITY_TYPES,
+  type FacilityAddress,
+  type FacilityType,
+} from "@/lib/facilities";
 import {
   createFacilityAction,
   removeFacilityAction,
   updateFacilityAction,
+  updateFacilityAddressAction,
 } from "@/server/actions/admin";
+import type { ActionState } from "@/server/actions/action-state";
 
-type FormState = { error?: string; ok?: string };
+type FormState = ActionState;
 
 const controlClass = "h-8 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm";
 
@@ -23,19 +30,117 @@ export type AdminFacility = {
   facilityType: string;
   squareFootage: string | null;
   timezone: string;
+  address: FacilityAddress | null;
 };
 
+const ADDRESS_INPUTS = [
+  {
+    name: "addressStreet",
+    label: "Street",
+    autoComplete: "street-address",
+    maxLength: 200,
+    value: (address: FacilityAddress) => address.street,
+  },
+  {
+    name: "addressCity",
+    label: "City",
+    autoComplete: "address-level2",
+    maxLength: 120,
+    value: (address: FacilityAddress) => address.city,
+  },
+  {
+    name: "addressRegion",
+    label: "Region or state",
+    autoComplete: "address-level1",
+    maxLength: 120,
+    value: (address: FacilityAddress) => address.region,
+  },
+  {
+    name: "addressPostalCode",
+    label: "Postal code",
+    autoComplete: "postal-code",
+    maxLength: 20,
+    value: (address: FacilityAddress) => address.postalCode,
+  },
+  {
+    name: "addressCountry",
+    label: "Country",
+    autoComplete: "country-name",
+    maxLength: 80,
+    value: (address: FacilityAddress) => address.country,
+  },
+] as const;
+
 function Feedback({ state }: { state: FormState }) {
-  if (state.error) return <p className="text-sm text-rose-600">{state.error}</p>;
+  if (state.error) {
+    return (
+      <p role="alert" className="text-sm text-rose-600">
+        {state.error}
+      </p>
+    );
+  }
   if (state.ok) return <p className="text-sm text-emerald-700">{state.ok}</p>;
   return null;
+}
+
+function AddressFields({
+  idPrefix,
+  address,
+  required,
+  fieldErrors,
+}: {
+  idPrefix: string;
+  address?: FacilityAddress | null;
+  required: boolean;
+  fieldErrors?: Record<string, string>;
+}) {
+  return (
+    <fieldset className="grid gap-3 md:grid-cols-2">
+      <legend className="mb-1 text-sm font-medium text-slate-950">Street address</legend>
+      {ADDRESS_INPUTS.map((field) => {
+        const id = `${idPrefix}-${field.name}`;
+        const error = fieldErrors?.[field.name];
+        const errorId = `${id}-error`;
+        return (
+          <div key={field.name} className="space-y-1.5">
+            <Label htmlFor={id}>{field.label}</Label>
+            <Input
+              id={id}
+              name={field.name}
+              autoComplete={field.autoComplete}
+              maxLength={field.maxLength}
+              required={required}
+              defaultValue={address ? field.value(address) : ""}
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? errorId : undefined}
+            />
+            {error ? (
+              <p id={errorId} className="text-sm text-rose-600">
+                {error}
+              </p>
+            ) : null}
+          </div>
+        );
+      })}
+    </fieldset>
+  );
 }
 
 function facilityTypeValue(value: string): FacilityType {
   return FACILITY_TYPES.find((type) => type === value) ?? "warehouse";
 }
 
-function FacilityFields({ facility, idPrefix }: { facility?: AdminFacility; idPrefix: string }) {
+function FacilityFields({
+  facility,
+  idPrefix,
+  includeAddress = false,
+  fieldErrors,
+}: {
+  facility?: AdminFacility;
+  idPrefix: string;
+  includeAddress?: boolean;
+  fieldErrors?: Record<string, string>;
+}) {
   return (
     <div className="grid gap-3 md:grid-cols-2">
       <div className="space-y-1.5">
@@ -89,6 +194,15 @@ function FacilityFields({ facility, idPrefix }: { facility?: AdminFacility; idPr
           required
         />
       </div>
+      {includeAddress ? (
+        <div className="md:col-span-2">
+          <AddressFields idPrefix={idPrefix} required={false} fieldErrors={fieldErrors} />
+          <p className="mt-2 text-xs text-slate-500">
+            Leave the street address blank, or fill in street, city, region or state, postal code,
+            and country.
+          </p>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -97,7 +211,7 @@ function CreateFacilityForm() {
   const [state, action, pending] = useActionState<FormState, FormData>(createFacilityAction, {});
   return (
     <form action={action} className="space-y-3">
-      <FacilityFields idPrefix="new-facility" />
+      <FacilityFields idPrefix="new-facility" includeAddress fieldErrors={state.fieldErrors} />
       <Feedback state={state} />
       <Button type="submit" disabled={pending}>
         {pending ? "Adding…" : "Add facility"}
@@ -120,6 +234,65 @@ function UpdateFacilityForm({ facility }: { facility: AdminFacility }) {
       <Button type="submit" disabled={pending}>
         {pending ? "Saving…" : "Save facility"}
       </Button>
+    </form>
+  );
+}
+
+function FacilityAddressForm({ facility }: { facility: AdminFacility }) {
+  const [state, action, pending] = useActionState<FormState, FormData>(
+    updateFacilityAddressAction,
+    {},
+  );
+  const stored = facility.address;
+  return (
+    <div className="space-y-3 border-t border-slate-100 pt-3">
+      <div>
+        <p className="text-xs font-medium tracking-wide text-slate-500 uppercase">
+          Current street address
+        </p>
+        {stored ? (
+          <p className="text-sm text-slate-700">
+            {stored.street}, {stored.city}, {stored.region} {stored.postalCode}, {stored.country}
+          </p>
+        ) : (
+          <p className="text-sm text-slate-600">No street address yet.</p>
+        )}
+      </div>
+      <form
+        action={action}
+        className="space-y-3"
+        key={`${facility.id}:${stored?.street ?? ""}:${stored?.city ?? ""}:${stored?.region ?? ""}:${stored?.postalCode ?? ""}:${stored?.country ?? ""}`}
+      >
+        <input type="hidden" name="facilityId" value={facility.id} />
+        <AddressFields
+          idPrefix={`address-${facility.id}`}
+          address={stored}
+          required
+          fieldErrors={state.fieldErrors}
+        />
+        <Button type="submit" disabled={pending}>
+          {pending ? "Saving address…" : "Save street address"}
+        </Button>
+      </form>
+      {stored ? <ClearFacilityAddressForm facilityId={facility.id} /> : null}
+      <Feedback state={state} />
+    </div>
+  );
+}
+
+function ClearFacilityAddressForm({ facilityId }: { facilityId: string }) {
+  const [state, action, pending] = useActionState<FormState, FormData>(
+    updateFacilityAddressAction,
+    {},
+  );
+  return (
+    <form action={action} className="space-y-2">
+      <input type="hidden" name="facilityId" value={facilityId} />
+      <input type="hidden" name="clearAddress" value="true" />
+      <Button type="submit" variant="outline" size="sm" disabled={pending}>
+        {pending ? "Removing address…" : "Clear street address"}
+      </Button>
+      <Feedback state={state} />
     </form>
   );
 }
@@ -154,6 +327,7 @@ export function FacilitiesPanel({ facilities }: { facilities: AdminFacility[] })
           {facilities.map((facility) => (
             <div key={facility.id} className="space-y-3 rounded-lg border border-slate-200 p-4">
               <UpdateFacilityForm facility={facility} />
+              <FacilityAddressForm facility={facility} />
               <RemoveFacilityForm facility={facility} />
             </div>
           ))}

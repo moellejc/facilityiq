@@ -1,3 +1,5 @@
+import "server-only";
+
 import { and, asc, count, desc, eq, sql } from "drizzle-orm";
 
 import { withTenant } from "@/db/tenant";
@@ -11,7 +13,7 @@ import {
   operationalMetrics,
   scenarios,
 } from "@/db/schema";
-import type { FacilityType } from "@/lib/facilities";
+import type { FacilityAddressColumns, FacilityType } from "@/lib/facilities";
 import { isUniqueViolation } from "@/lib/postgres";
 
 const facilitySummaryColumns = {
@@ -21,6 +23,11 @@ const facilitySummaryColumns = {
   facilityType: facilities.facilityType,
   squareFootage: facilities.squareFootage,
   timezone: facilities.timezone,
+  addressStreet: facilities.addressStreet,
+  addressCity: facilities.addressCity,
+  addressRegion: facilities.addressRegion,
+  addressPostalCode: facilities.addressPostalCode,
+  addressCountry: facilities.addressCountry,
 };
 
 export type FacilityInput = {
@@ -29,6 +36,11 @@ export type FacilityInput = {
   facilityType: FacilityType;
   squareFootage: string | null;
   timezone: string;
+  addressStreet: string | null;
+  addressCity: string | null;
+  addressRegion: string | null;
+  addressPostalCode: string | null;
+  addressCountry: string | null;
 };
 
 export type FacilityPatch = {
@@ -37,19 +49,29 @@ export type FacilityPatch = {
   facilityType?: FacilityType;
   squareFootage?: string | null;
   timezone?: string;
+  addressStreet?: string | null;
+  addressCity?: string | null;
+  addressRegion?: string | null;
+  addressPostalCode?: string | null;
+  addressCountry?: string | null;
 };
+
+const ADDRESS_PATCH_KEYS = [
+  "addressStreet",
+  "addressCity",
+  "addressRegion",
+  "addressPostalCode",
+  "addressCountry",
+] as const satisfies readonly (keyof FacilityAddressColumns)[];
+
+function addressChanged(patch: FacilityPatch) {
+  return ADDRESS_PATCH_KEYS.some((key) => key in patch);
+}
 
 export async function listFacilities(organizationId: string, userId: string) {
   return withTenant({ organizationId, userId }, async (tx) => {
     return tx
-      .select({
-        id: facilities.id,
-        name: facilities.name,
-        location: facilities.location,
-        facilityType: facilities.facilityType,
-        squareFootage: facilities.squareFootage,
-        timezone: facilities.timezone,
-      })
+      .select(facilitySummaryColumns)
       .from(facilities)
       .where(eq(facilities.organizationId, organizationId))
       .orderBy(asc(facilities.name));
@@ -68,6 +90,11 @@ export async function insertFacility(organizationId: string, userId: string, inp
           facilityType: input.facilityType,
           squareFootage: input.squareFootage,
           timezone: input.timezone,
+          addressStreet: input.addressStreet,
+          addressCity: input.addressCity,
+          addressRegion: input.addressRegion,
+          addressPostalCode: input.addressPostalCode,
+          addressCountry: input.addressCountry,
         })
         .returning(facilitySummaryColumns);
       if (!facility) return { status: "conflict" as const };
@@ -77,7 +104,7 @@ export async function insertFacility(organizationId: string, userId: string, inp
         action: "facility.create",
         entityType: "facility",
         entityId: facility.id,
-        metadata: { name: facility.name },
+        metadata: { name: facility.name, addressSet: facility.addressStreet != null },
       });
       return { status: "created" as const, facility };
     });
@@ -107,7 +134,10 @@ export async function updateFacility(
         action: "facility.update",
         entityType: "facility",
         entityId: facility.id,
-        metadata: { name: facility.name },
+        metadata: {
+          name: facility.name,
+          ...(addressChanged(patch) ? { addressChanged: true } : {}),
+        },
       });
       return { status: "updated" as const, facility };
     });

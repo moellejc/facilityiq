@@ -1,12 +1,17 @@
+import Link from "next/link";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageIntro } from "@/components/dashboard/coming-next";
+import { FacilityAddressBlock } from "@/components/facilities/facility-address";
 import { formatSquareFeet } from "@/lib/format";
+import { roleCan } from "@/lib/permissions";
 import { requireRequestContext } from "@/server/services/context";
 
 export const dynamic = "force-dynamic";
 
 export default async function FacilitiesPage() {
   const context = await requireRequestContext();
+  const canEditAddress = roleCan(context.role, "facilities:write");
 
   return (
     <div>
@@ -30,8 +35,20 @@ export default async function FacilitiesPage() {
               <CardHeader>
                 <CardTitle>{facility.name}</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-1 text-sm text-slate-600">
+              <CardContent className="space-y-3 text-sm text-slate-600">
                 <p>{facility.location ?? "Location not recorded"}</p>
+                <FacilityAddressBlock address={facility.address} />
+                {canEditAddress ? (
+                  <p>
+                    <Link className="text-indigo-700" href="/admin">
+                      Update street address
+                    </Link>
+                  </p>
+                ) : (
+                  <p className="text-xs text-slate-500">
+                    Only an organization administrator can change this address.
+                  </p>
+                )}
                 <p className="capitalize">{facility.facilityType.replaceAll("_", " ")}</p>
                 <p>{formatSquareFeet(facility.squareFootage)}</p>
                 {facility.id === context.facilityId ? (

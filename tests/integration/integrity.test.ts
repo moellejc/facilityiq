@@ -33,6 +33,49 @@ describe("referential integrity", () => {
     await db.delete(users).where(eq(users.id, userId));
   });
 
+  it("rejects a facility street address that is only partly filled", async () => {
+    const db = getDb();
+    const localOrg = randomUUID();
+    const localUser = randomUUID();
+    await db.insert(users).values({
+      id: localUser,
+      email: `address-${suffix}@test.local`,
+      name: "Address",
+    });
+    await db.insert(organizations).values({
+      id: localOrg,
+      name: "Address Org",
+      slug: `address-${suffix}`,
+    });
+    await db.insert(facilities).values({
+      organizationId: localOrg,
+      name: "Complete address",
+      facilityType: "warehouse",
+      addressStreet: "1 Main Street",
+      addressCity: "Tacoma",
+      addressRegion: "WA",
+      addressPostalCode: "98421",
+      addressCountry: "United States",
+    });
+
+    let thrown: unknown;
+    try {
+      await db.insert(facilities).values({
+        organizationId: localOrg,
+        name: "Partial address",
+        facilityType: "warehouse",
+        addressStreet: "1 Main Street",
+        addressCity: "Tacoma",
+      });
+    } catch (error) {
+      thrown = error;
+    }
+    expect(errorText(thrown)).toContain("facilities_address_complete");
+
+    await db.delete(organizations).where(eq(organizations.id, localOrg));
+    await db.delete(users).where(eq(users.id, localUser));
+  });
+
   it("rejects a facility that points at a missing organization", async () => {
     await expect(
       getDb().insert(facilities).values({
