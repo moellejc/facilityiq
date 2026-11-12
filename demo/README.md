@@ -4,7 +4,7 @@ These files are demo fixtures. They are not product code. Do not apply `demo/bad
 
 This is not the FAIQ-36 cost-by-category feature. The patches use those paths only so the guard has a bad page and a client chart to reject. The fixed patch makes those same two files pass `pnpm guard`. It does not calculate a cost. The chart receives an em dash, which is how a missing value is displayed. There is no service, repository, or test in the fix, because the guard's test-strength check only runs when a logic file changes.
 
-The guard scripts are not modified here. The transcript below is from `origin/main` at `c1f62fd` (`Fix CI pnpm setup and add ratcheted guardrails. (#3)`). On that commit, `scripts/guard/lib.mjs` still ratchets by finding count.
+The guard scripts are not modified here. The transcript below is from `origin/main` at `2bc1dfa` (`Merge pull request #14 from moellejc/cursor/facilityiq-standards-split-315d`). On that commit, `scripts/guard/lib.mjs` fingerprints each finding by rule and source line, with whitespace collapsed.
 
 Next.js links in the finding map were read from nextjs.org and match `node_modules/next/dist/docs` for `next@16.4.5`. Pages Router links document the APIs the bad patch uses. App Router links are the replacement. Codemod commands are the ones in the Next.js 16 upgrade guide shipped with that package.
 
@@ -32,32 +32,32 @@ The second script runs the Cursor CLI only when `DEMO_RUN_AGENT=1`, a Cursor API
 
 ## Guard transcript
 
-Command: `bash demo/run-guard-demo.sh` on 2026-11-11, against `origin/main` `c1f62fd8bc7bc58debd292584d252cda38e47853`. The temp worktree path is created by `mktemp` and changes every run. Exit code of the script: 0. Exit code of `pnpm guard` on the bad patch: 1 (9 error rows). Exit code after `fixed-change.patch`: 0.
+Command: `bash demo/run-guard-demo.sh` on 2026-11-12, against `origin/main` `2bc1dfa7afb7369ad9d27e7af9fbc26b6c15116e`. The temp worktree path is created by `mktemp` and changes every run. Exit code of the script: 0. Exit code of `pnpm guard` on the bad patch: 1 (9 error rows). Exit code after `fixed-change.patch`: 0.
 
 ```text
 FacilityIQ demo fixtures. Not product code. Not for main.
 Guard under test: pnpm guard (package.json -> node scripts/guard/pre-pr.mjs)
-Recorded against origin/main c1f62fd — Fix CI pnpm setup and add ratcheted guardrails. (#3)
+Recorded against origin/main 2bc1dfa — Merge pull request #14 from moellejc/cursor/facilityiq-standards-split-315d
 The guard scripts in that commit are not modified by this demo.
 
 === apply check ===
-Preparing worktree (detached HEAD c1f62fd)
+Preparing worktree (detached HEAD 2bc1dfa)
 verified: bad-change.patch applies to origin/main, and fixed-change.patch applies on top
-Preparing worktree (detached HEAD c1f62fd)
+Preparing worktree (detached HEAD 0e212f8)
 verified: bad-change.patch applies to HEAD, and fixed-change.patch applies on top
 
-Preparing worktree (detached HEAD c1f62fd)
+Preparing worktree (detached HEAD 2bc1dfa)
 === apply bad-change.patch on origin/main ===
-worktree: /tmp/tmp.BnX4UeTiQD
-rev: c1f62fd8bc7bc58debd292584d252cda38e47853
+worktree: /tmp/tmp.sPw5miJDkL
+rev: 2bc1dfa7afb7369ad9d27e7af9fbc26b6c15116e
 
 === bad change: pnpm guard on origin/main ===
 
-> facilityiq@0.1.0 guard /tmp/tmp.BnX4UeTiQD
+> facilityiq@0.1.0 guard /tmp/tmp.sPw5miJDkL
 > node scripts/guard/pre-pr.mjs
 
 ## FacilityIQ pre-PR guard
-New violations only. A finding that already exists on the base branch is not reported again.
+New violations only. Each finding is fingerprinted by rule and source line, with whitespace collapsed. A line that already exists for that rule on the base branch is not reported again. A different line fails even when the count stays the same, including a hit that replaces an earlier one or is inserted above the baseline hits.
 Checked 2 file(s). **9 error(s), 0 warning(s).**
 
 ### fail: Boundaries (scope: default)
@@ -164,11 +164,11 @@ bad-change error rows: 9
 
 === fixed change: pnpm guard on origin/main ===
 
-> facilityiq@0.1.0 guard /tmp/tmp.BnX4UeTiQD
+> facilityiq@0.1.0 guard /tmp/tmp.sPw5miJDkL
 > node scripts/guard/pre-pr.mjs
 
 ## FacilityIQ pre-PR guard
-New violations only. A finding that already exists on the base branch is not reported again.
+New violations only. Each finding is fingerprinted by rule and source line, with whitespace collapsed. A line that already exists for that rule on the base branch is not reported again. A different line fails even when the count stays the same, including a hit that replaces an earlier one or is inserted above the baseline hits.
 Checked 2 file(s). **0 error(s), 0 warning(s).**
 
 ### Boundaries (scope: default)
