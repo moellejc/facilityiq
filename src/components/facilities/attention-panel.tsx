@@ -47,12 +47,9 @@ function AttentionList({ model }: { model: Extract<FacilityAttentionView, { stat
         />
       </nav>
       {model.truncated ? (
-        <p className="text-sm text-slate-600">
-          Showing subjects from the 100 most recent warning and critical alerts. Older alerts are
-          not listed.
-        </p>
+        <p className="text-sm text-slate-600">{truncatedMessage(model.filter)}</p>
       ) : null}
-      {model.items.length === 0 ? (
+      {model.totalSignals === 0 ? (
         <p className="text-sm text-slate-600">{emptyMessage(model.filter)}</p>
       ) : (
         <ul className="divide-y divide-slate-100 border-t border-slate-100">
@@ -148,6 +145,16 @@ function messageFor(model: Exclude<FacilityAttentionView, { status: "ready" }>) 
     return "Choose a facility to see areas and assets that need attention.";
   }
   return "This facility is not available.";
+}
+
+function truncatedMessage(filter: AttentionFilter) {
+  if (filter === "critical") {
+    return "Showing subjects from the 100 most recent critical alerts. Older critical alerts are not listed.";
+  }
+  if (filter === "warning") {
+    return "Showing subjects from the 100 most recent warning alerts. Older warning alerts are not listed.";
+  }
+  return "Showing subjects from the 100 most recent warning and critical alerts. Older warning and critical alerts are not listed.";
 }
 
 function emptyMessage(filter: AttentionFilter) {

@@ -28,6 +28,7 @@ export async function getFacilityAttention(input: {
     input.organizationId,
     input.userId,
     input.facilityId,
+    input.filter,
   );
   const signals: AttentionSignal[] = events.data.map((row) => ({
     id: row.id,

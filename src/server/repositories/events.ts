@@ -4,6 +4,7 @@ import { and, count, desc, eq, inArray } from "drizzle-orm";
 
 import { withTenant } from "@/db/tenant";
 import { assetEvents, assets, facilityAreas } from "@/db/schema";
+import type { AttentionFilter } from "@/lib/attention";
 
 export const ATTENTION_EVENT_LIMIT = 100;
 
@@ -13,12 +14,15 @@ export async function listFacilityAttentionEvents(
   organizationId: string,
   userId: string,
   facilityId: string,
+  severity: AttentionFilter,
 ) {
+  const severities: Array<(typeof ATTENTION_SEVERITIES)[number]> =
+    severity === "all" ? [...ATTENTION_SEVERITIES] : [severity];
   return withTenant({ organizationId, userId }, async (tx) => {
     const where = and(
       eq(assetEvents.organizationId, organizationId),
       eq(assetEvents.facilityId, facilityId),
-      inArray(assetEvents.severity, [...ATTENTION_SEVERITIES]),
+      inArray(assetEvents.severity, severities),
     );
     const [totalRow] = await tx.select({ total: count() }).from(assetEvents).where(where);
     const data = await tx
