@@ -25,6 +25,8 @@ import {
   importStatusEnum,
   insightStatusEnum,
   insightTypeEnum,
+  integrationProviderEnum,
+  integrationStatusEnum,
   jobStatusEnum,
   jobTypeEnum,
   metricTypeEnum,
@@ -151,7 +153,10 @@ export const facilities = pgTable(
     metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
     ...timestamps,
   },
-  (table) => [index("facilities_organization_id_idx").on(table.organizationId)],
+  (table) => [
+    index("facilities_organization_id_idx").on(table.organizationId),
+    uniqueIndex("facilities_organization_name_unique").on(table.organizationId, table.name),
+  ],
 );
 
 export const facilityAreas = pgTable(
@@ -434,6 +439,25 @@ export const importJobs = pgTable(
     completedAt: timestamp("completed_at", { withTimezone: true, mode: "date" }),
   },
   (table) => [index("import_jobs_organization_id_idx").on(table.organizationId)],
+);
+
+export const integrations = pgTable(
+  "integrations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    provider: integrationProviderEnum("provider").notNull(),
+    status: integrationStatusEnum("status").notNull().default("active"),
+    externalReference: text("external_reference"),
+    ...timestamps,
+  },
+  (table) => [
+    index("integrations_organization_id_idx").on(table.organizationId),
+    uniqueIndex("integrations_organization_name_unique").on(table.organizationId, table.name),
+  ],
 );
 
 export const auditLogs = pgTable(

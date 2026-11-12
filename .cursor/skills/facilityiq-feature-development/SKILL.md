@@ -53,6 +53,8 @@ Feature progress:
 
 Also read `docs/ARCHITECTURE.md` and find the nearest existing slice to mirror (e.g. `api/facilities/[id]/metrics/route.ts` → `analytics-service.ts` → `repositories/analytics.ts` → `lib/analytics`).
 
+Picking files for a new segment, a Server Action versus a Route Handler, or a cache API: read `nextjs-app-router-route`, `nextjs-server-action-vs-route-handler`, or `nextjs-caching-and-revalidation`, then the domain skill in the table. A Next.js upgrade is `nextjs-upgrade-assistant`, not this workflow.
+
 **3. Design.** Decide: route(s) and method semantics; permission(s); DTO shape (authorized fields, finance gating, observed vs projected, `unavailableReason`); transaction boundary; idempotency for retryable writes; request vs worker; caching (default none).
 
 **4. Implement bottom-up.** Schema + new migration → repository (org-scoped) → pure lib functions → Zod schemas → service (permission, invariants, transaction, DTO) → route adapter / Server Component → UI with all six data states.

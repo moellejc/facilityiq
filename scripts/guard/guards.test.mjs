@@ -300,6 +300,29 @@ test("ci.yml does not pin a pnpm version beside packageManager", () => {
   assert.doesNotMatch(step, /\n\s*version:/);
 });
 
+test("deploy grants packages:write only on the image job", () => {
+  const yml = readFileSync(new URL("../../.github/workflows/deploy.yml", import.meta.url), "utf8");
+  const workflowPerms = yml.split(/^jobs:/m)[0];
+  assert.match(workflowPerms, /permissions:\n {2}contents: read\n/);
+  assert.doesNotMatch(workflowPerms, /packages:\s*write/);
+  const image = yml.split(/^ {2}image:\n/m)[1].split(/^ {2}staging:\n/m)[0];
+  assert.match(image, /packages:\s*write/);
+  assert.doesNotMatch(yml.split(/^ {2}staging:\n/m)[1], /packages:\s*write/);
+});
+
+test("deploy image scan pins trivy-action v0.36.0", () => {
+  const yml = readFileSync(new URL("../../.github/workflows/deploy.yml", import.meta.url), "utf8");
+  const uses = [...yml.matchAll(/^\s*uses:\s*(\S+)/gm)].map((match) => match[1]);
+  // v0.28.0 installs aquasecurity/setup-trivy@v0.2.1. That tag no longer exists,
+  // so the image job fails during action resolution before any step runs.
+  // v0.36.0 pins setup-trivy to commit 3fb12ec (tag v0.2.6), which still resolves.
+  assert.deepEqual(
+    uses.filter((ref) => ref.startsWith("aquasecurity/trivy-action@")),
+    ["aquasecurity/trivy-action@v0.36.0"],
+  );
+  assert.equal(uses.includes("aquasecurity/setup-trivy@v0.2.1"), false);
+});
+
 test("unchanged baseline debt is silent and one new hit is reported", () => {
   const script = `
     import { readFileSync } from "node:fs";

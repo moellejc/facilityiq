@@ -7,6 +7,8 @@ description: FacilityIQ HTTP API standards — route surface, withApi/withFacili
 
 Source: Notion Coding Conventions §5, §14.
 
+Whether the change should be a Route Handler at all: `nextjs-server-action-vs-route-handler`. File-level conflicts with `page.tsx`: `nextjs-app-router-route`. This skill stays the HTTP contract.
+
 ## Route handlers are thin adapters
 
 They own: HTTP methods, context resolution, boundary parsing, response mapping. They must **not** contain Drizzle queries, KPI formulas, scenario rules, or orchestration — that's services (`facilityiq-services-and-domain-logic`).
