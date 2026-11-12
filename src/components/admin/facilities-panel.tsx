@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, type ComponentProps } from "react";
+import { useFormStatus } from "react-dom";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -238,6 +239,20 @@ function UpdateFacilityForm({ facility }: { facility: AdminFacility }) {
   );
 }
 
+function AddressSubmitButton({
+  busy,
+  pendingLabel,
+  children,
+  ...props
+}: ComponentProps<typeof Button> & { busy: boolean; pendingLabel: string }) {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" disabled={busy || pending} {...props}>
+      {pending ? pendingLabel : children}
+    </Button>
+  );
+}
+
 function FacilityAddressForm({ facility }: { facility: AdminFacility }) {
   const [state, action, pending] = useActionState<FormState, FormData>(
     updateFacilityAddressAction,
@@ -270,30 +285,26 @@ function FacilityAddressForm({ facility }: { facility: AdminFacility }) {
           required
           fieldErrors={state.fieldErrors}
         />
-        <Button type="submit" disabled={pending}>
-          {pending ? "Saving address…" : "Save street address"}
-        </Button>
+        <AddressSubmitButton busy={pending} pendingLabel="Saving address…">
+          Save street address
+        </AddressSubmitButton>
       </form>
-      {stored ? <ClearFacilityAddressForm facilityId={facility.id} /> : null}
+      {stored ? (
+        <form action={action} className="space-y-2">
+          <input type="hidden" name="facilityId" value={facility.id} />
+          <input type="hidden" name="clearAddress" value="true" />
+          <AddressSubmitButton
+            busy={pending}
+            pendingLabel="Removing address…"
+            variant="outline"
+            size="sm"
+          >
+            Clear street address
+          </AddressSubmitButton>
+        </form>
+      ) : null}
       <Feedback state={state} />
     </div>
-  );
-}
-
-function ClearFacilityAddressForm({ facilityId }: { facilityId: string }) {
-  const [state, action, pending] = useActionState<FormState, FormData>(
-    updateFacilityAddressAction,
-    {},
-  );
-  return (
-    <form action={action} className="space-y-2">
-      <input type="hidden" name="facilityId" value={facilityId} />
-      <input type="hidden" name="clearAddress" value="true" />
-      <Button type="submit" variant="outline" size="sm" disabled={pending}>
-        {pending ? "Removing address…" : "Clear street address"}
-      </Button>
-      <Feedback state={state} />
-    </form>
   );
 }
 
