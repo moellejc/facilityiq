@@ -5,7 +5,14 @@ import { Client } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { getDb } from "@/db";
-import { assets, facilities, organizationMembers, organizations, users } from "@/db/schema";
+import {
+  assets,
+  facilities,
+  integrations,
+  organizationMembers,
+  organizations,
+  users,
+} from "@/db/schema";
 
 const suffix = randomUUID().slice(0, 8);
 const orgA = randomUUID();
@@ -73,6 +80,41 @@ describe("row-level security", () => {
       const assetsResult = await client.query("select id from assets");
       expect(facilitiesResult.rows.map((row) => row.id)).toEqual([facilityA]);
       expect(assetsResult.rows.map((row) => row.id)).toEqual([assetA]);
+    } finally {
+      await client.end();
+    }
+  });
+
+  it("hides integration rows until the organization setting is present", async () => {
+    const integrationA = randomUUID();
+    const integrationB = randomUUID();
+    await getDb()
+      .insert(integrations)
+      .values([
+        {
+          id: integrationA,
+          organizationId: orgA,
+          name: `Visible ${suffix}`,
+          provider: "sap",
+          externalReference: "PLANT-A",
+        },
+        {
+          id: integrationB,
+          organizationId: orgB,
+          name: `Hidden ${suffix}`,
+          provider: "custom",
+        },
+      ]);
+
+    const client = new Client({ connectionString: appUrl });
+    await client.connect();
+    try {
+      const hidden = await client.query("select count(*)::int as total from integrations");
+      expect(hidden.rows[0].total).toBe(0);
+      await client.query("select set_config('app.current_organization_id', $1, false)", [orgA]);
+      await client.query("select set_config('app.current_user_id', $1, false)", [userA]);
+      const visible = await client.query("select id from integrations");
+      expect(visible.rows.map((row) => row.id)).toEqual([integrationA]);
     } finally {
       await client.end();
     }

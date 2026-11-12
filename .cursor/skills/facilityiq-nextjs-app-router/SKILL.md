@@ -59,7 +59,7 @@ Use `metadata` / `generateMetadata` or metadata files. Never `next/head`.
 
 ## Server Actions (`src/server/actions`)
 
-Optional thin adapters for progressive-enhancement forms. Pattern from `src/server/actions/settings.ts`:
+Optional thin adapters for progressive-enhancement forms. Pattern from `src/server/actions/admin.ts`:
 
 - `"use server"`; call `requireRequestContext()`; pass raw `FormData` values to the **same service** the API uses (the service Zod-parses and checks permissions).
 - Return a safe `{ error?, ok? }` state; map only `AppError` messages, otherwise a generic message.

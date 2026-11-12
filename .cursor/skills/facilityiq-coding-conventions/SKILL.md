@@ -59,3 +59,5 @@ Decision skills sit beside that index. They link to the domain skill instead of 
 | First PR                                            | `facilityiq-first-contribution`         | the workflow table in `AGENTS.md`                         |
 
 Organize by domain inside these folders. Don't invent new top-level locations without updating `docs/ARCHITECTURE.md`.
+
+`bot/`, `automations/`, and `scripts/cursor-api/` are process specs and an UNTESTED Cloud Agents helper, not product code. `docs/ARCHITECTURE.md` lists them.

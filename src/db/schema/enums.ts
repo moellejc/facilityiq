@@ -104,3 +104,7 @@ export const jobTypeEnum = pgEnum("job_type", [
   "model_processing",
   "model_conversion",
 ]);
+
+export const integrationProviderEnum = pgEnum("integration_provider", ["sap", "custom"]);
+
+export const integrationStatusEnum = pgEnum("integration_status", ["active", "disabled"]);

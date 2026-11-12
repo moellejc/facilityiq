@@ -5,10 +5,12 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { renameOrganizationAction, type SettingsState } from "@/server/actions/settings";
+import { renameOrganizationAction } from "@/server/actions/admin";
+
+type FormState = { error?: string; ok?: string };
 
 export function RenameOrganizationForm({ name }: { name: string }) {
-  const [state, action, pending] = useActionState<SettingsState, FormData>(
+  const [state, action, pending] = useActionState<FormState, FormData>(
     renameOrganizationAction,
     {},
   );
