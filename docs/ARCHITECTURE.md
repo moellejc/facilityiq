@@ -149,6 +149,8 @@ Core formulas (implement and test exactly):
 
 Division by zero or an empty period returns `null` with a machine-readable `unavailable_reason`. Do not render `0` as if it were a measured value.
 
+Each dashboard chart (throughput over time, operating cost over time, utilization by area, cost by category, asset performance, and cost by asset) can switch to a table of that same series and download a CSV. The server page builds the table from the analytics DTO it already loaded. There is no separate export route. A column marked finance is omitted unless that DTO includes `finance`, which the service allows only with `finance:read`. Observed values stay in their own column. A missing sample is an empty CSV field and the word Unavailable in the table, not zero. The table shows `formatMeasure` text. The CSV keeps the unrounded number.
+
 Raw series live in `operational_metrics` and `financial_metrics` (`metric_type` / `cost_category` enums). Seed 30 days of internally consistent data, including the required problem conditions.
 
 **Insights (Phase 4):** `InsightsProvider` in `src/lib/ai/provider.ts`. Default `DeterministicRulesProvider` always works without an API key and surfaces the seeded problems from calculated metrics. Optional language enrichment behind `AI_API_KEY` (`src/lib/ai/llm-language.ts`) may only rephrase text after Zod validation. Persistence is `generateFacilityInsights` → `replaceDeterministicInsights`. Model output cannot execute mutations. The insights page links to `/facilities/twin?select=asset:<id>` or `select=area:<id>`. Estimated savings stay labeled estimates.

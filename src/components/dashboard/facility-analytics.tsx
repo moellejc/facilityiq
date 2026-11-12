@@ -1,11 +1,18 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 
+import { ChartPanel } from "@/components/charts/chart-panel";
 import { NamedBarChart, TimeSeriesChart } from "@/components/charts/metric-charts";
 import { DateRangeControls } from "@/components/dashboard/date-range-controls";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatKpiValue } from "@/lib/analytics/display";
+import {
+  chartCsvFilename,
+  namedValueChartTable,
+  timeSeriesChartTable,
+  type ChartTable,
+} from "@/lib/charts/csv";
 import {
   analyticsPresets,
   getFacilityAnalytics,
@@ -50,6 +57,8 @@ export async function FacilityAnalytics({
       : null;
   const operations = analytics.operations;
   const finance = analytics.finance;
+  const includeFinance = finance !== null;
+  const csvRange = { from: analytics.range.from, to: analytics.range.to };
 
   return (
     <div>
@@ -182,6 +191,14 @@ export async function FacilityAnalytics({
           <ChartCard
             title="Throughput over time"
             description="Facility orders per hour. Gaps are missing samples, not zero."
+            filename={chartCsvFilename("Throughput over time", csvRange)}
+            table={timeSeriesChartTable({
+              points: operations.throughputSeries,
+              label: "Orders per hour",
+              unit: "orders/hour",
+              sensitivity: "none",
+              includeFinance,
+            })}
           >
             <TimeSeriesChart
               points={operations.throughputSeries}
@@ -194,12 +211,31 @@ export async function FacilityAnalytics({
           <ChartCard
             title="Operating cost over time"
             description="Sum of stored cost rows each day."
+            filename={chartCsvFilename("Operating cost over time", csvRange)}
+            table={timeSeriesChartTable({
+              points: finance.costSeries,
+              label: "Operating cost",
+              unit: "USD",
+              sensitivity: "finance",
+              includeFinance,
+            })}
           >
             <TimeSeriesChart points={finance.costSeries} label="Operating cost" unit="USD" />
           </ChartCard>
         ) : null}
         {operations && (focus === "overview" || focus === "utilization") ? (
-          <ChartCard title="Utilization by area" description="Mean of area utilization samples.">
+          <ChartCard
+            title="Utilization by area"
+            description="Mean of area utilization samples."
+            filename={chartCsvFilename("Utilization by area", csvRange)}
+            table={namedValueChartTable({
+              rows: operations.utilizationByArea,
+              label: "Utilization",
+              unit: "%",
+              sensitivity: "none",
+              includeFinance,
+            })}
+          >
             <NamedBarChart rows={operations.utilizationByArea} unit="%" />
           </ChartCard>
         ) : null}
@@ -207,6 +243,14 @@ export async function FacilityAnalytics({
           <ChartCard
             title="Cost by category"
             description="Categories with no stored rows are omitted. Unassigned rows are labeled Facility-wide on the area chart."
+            filename={chartCsvFilename("Cost by category", csvRange)}
+            table={namedValueChartTable({
+              rows: finance.costByCategory,
+              label: "Amount",
+              unit: "USD",
+              sensitivity: "finance",
+              includeFinance,
+            })}
           >
             <NamedBarChart rows={finance.costByCategory} unit="USD" color="#0f766e" />
           </ChartCard>
@@ -216,12 +260,31 @@ export async function FacilityAnalytics({
           <ChartCard
             title="Asset performance"
             description="Equipment with stored utilization. Racks and pallets stay on the heatmap."
+            filename={chartCsvFilename("Asset performance", csvRange)}
+            table={namedValueChartTable({
+              rows: operations.assetPerformance,
+              label: "Utilization",
+              unit: "%",
+              sensitivity: "none",
+              includeFinance,
+            })}
           >
             <NamedBarChart rows={operations.assetPerformance} unit="%" color="#b45309" />
           </ChartCard>
         ) : null}
         {finance && (focus === "overview" || focus === "asset-costs") ? (
-          <ChartCard title="Cost by asset" description="Assets without a cost row are omitted.">
+          <ChartCard
+            title="Cost by asset"
+            description="Assets without a cost row are omitted."
+            filename={chartCsvFilename("Cost by asset", csvRange)}
+            table={namedValueChartTable({
+              rows: finance.costByAsset,
+              label: "Operating cost",
+              unit: "USD",
+              sensitivity: "finance",
+              includeFinance,
+            })}
+          >
             <NamedBarChart rows={finance.costByAsset} unit="USD" color="#7c3aed" />
           </ChartCard>
         ) : null}
@@ -259,19 +322,21 @@ export async function FacilityAnalytics({
 function ChartCard({
   title,
   description,
+  filename,
+  table,
   children,
 }: {
   title: string;
   description: string;
+  filename: string;
+  table: ChartTable;
   children: ReactNode;
 }) {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent>{children}</CardContent>
+      <ChartPanel title={title} description={description} filename={filename} table={table}>
+        {children}
+      </ChartPanel>
     </Card>
   );
 }
