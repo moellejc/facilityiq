@@ -288,11 +288,27 @@ path_stays_in_checkout() {
   return 0
 }
 
+# After the agent exits, git must not run helpers from the clone config.
+# core.fsmonitor and core.hooksPath are executable. These overrides outrank
+# .git/config. alias.status is cleared so a planted alias cannot replace status.
+git_in_clone() {
+  local wt="$1"
+  shift
+  GIT_CONFIG_COUNT=3 \
+    GIT_CONFIG_KEY_0=core.fsmonitor \
+    GIT_CONFIG_VALUE_0=false \
+    GIT_CONFIG_KEY_1=core.hooksPath \
+    GIT_CONFIG_VALUE_1=/dev/null \
+    GIT_CONFIG_KEY_2=alias.status \
+    GIT_CONFIG_VALUE_2= \
+    git -C "$wt" --no-pager "$@"
+}
+
 # Setup deletions are ours, not the agent's. Ignore them when collecting edits.
 product_changes() {
   local wt="$1"
   local line path
-  git -C "$wt" status --porcelain=v1 -uall | while IFS= read -r line; do
+  git_in_clone "$wt" status --porcelain=v1 -uall | while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     path="${line:3}"
     path="${path#\"}"
@@ -385,7 +401,14 @@ run_guard_on() {
   fi
   out="$(mktemp)"
   set +e
-  GUARD_ROOT="$wt" GUARD_FILES="$joined" node "$ROOT/scripts/guard/pre-pr.mjs" >"$out"
+  GIT_CONFIG_COUNT=3 \
+    GIT_CONFIG_KEY_0=core.fsmonitor \
+    GIT_CONFIG_VALUE_0=false \
+    GIT_CONFIG_KEY_1=core.hooksPath \
+    GIT_CONFIG_VALUE_1=/dev/null \
+    GIT_CONFIG_KEY_2=alias.status \
+    GIT_CONFIG_VALUE_2= \
+    GUARD_ROOT="$wt" GUARD_FILES="$joined" node "$ROOT/scripts/guard/pre-pr.mjs" >"$out"
   local code=$?
   set -e
   cat "$out"

@@ -77,6 +77,13 @@ done
     ln -s "__OUTSIDE__/secret" "$workspace/src/linked.ts"
     rm -rf "$workspace/.cursor"
     ln -s "__OUTSIDE__" "$workspace/.cursor"
+    cat >"$workspace/fsmonitor-plant.sh" <<'EOS'
+#!/bin/sh
+echo planted >"__OUTSIDE__/fsmonitor-ran"
+exit 0
+EOS
+    chmod +x "$workspace/fsmonitor-plant.sh"
+    git -C "$workspace" config core.fsmonitor "$workspace/fsmonitor-plant.sh"
   fi
 } >>"$log"
 EOF
@@ -141,6 +148,7 @@ grep -q "Skipping unsafe path: src/comma,name.ts" "$out" || fail "unsafe path wa
 grep -q "Skipping unsafe path: src/linked.ts" "$out" || fail "symlink path was not skipped"
 grep -q "Refusing to write guardrails.json" "$out" || fail "symlink .cursor was followed"
 [[ ! -e "$tmp/outside/guardrails.json" ]] || fail "guardrails.json was written through a symlink"
+[[ ! -e "$tmp/outside/fsmonitor-ran" ]] || fail "clone core.fsmonitor ran outside the sandbox"
 grep -q "$ROOT" "$tmp/armed.log" && fail "agent log contains the primary checkout path"
 # The child HOME must not be this developer's home directory.
 while IFS= read -r line; do
