@@ -33,7 +33,7 @@ Do not enable the Cursor-managed PR Routing & Approval agent, and do not turn on
 
 1. Run the guard scripts from `origin/main` (`git archive origin/main scripts/guard`), with `GUARD_ROOT` set to the checkout and `GUARD_BASE=origin/main`. `pnpm guard` is the same file, but the automation must not run the pull request copy. If `origin/main` does not contain the script yet, do not fall back. Keep stdout even when the exit code is 1.
 2. Turn that stdout into one comment with the `origin/main` copy of `scripts/guard/format-review-comment.mjs`. The comment is that stdout. Do not rewrite it. Every path argument stays in the temp directory.
-3. The comment contains the marker `<!-- facilityiq-pr-guardrail-review -->`, a verdict, one findings table (level, rule id, file, doc link), a fenced why block, and a tests-actually-run table.
+3. The comment contains the marker `<!-- facilityiq-pr-guardrail-review -->`, a verdict, one findings table (level and doc link), a fenced block for the rule id, path, and message, and a tests-actually-run table.
 4. Each guard row's doc link is the skill named on that rule (`.cursor/skills/<skill>/SKILL.md`). The message and the standard text are fenced, not live Markdown. Pass `--ref` as the pull request head SHA (7–40 hex characters). Without a SHA the cell names the path and says `blob URL not verified`. Do not invent a Notion URL.
 5. Request a review from the GitHub login on the `*` line of `origin/main:.github/CODEOWNERS`. Today that line is `* @moellejc` (Staff Eng). A login that is only on the pull request copy is not requested. If that line has no owner, or `--codeowners` is omitted, the comment says the reviewer is not verified. Do not guess a login.
 6. Anything this run did not execute stays `not verified`. A checked box in the PR body is not evidence.
@@ -53,7 +53,7 @@ The comment is the stdout of `scripts/guard/format-review-comment.mjs`. Shape:
 - `Staff Eng review requested: @moellejc` or `Staff Eng review requested: not verified`.
 - A sentence that this comment does not approve, merge, or close.
 - `Unverified in this run: ...` or `Unverified in this run: none.`
-- Findings table: level, rule id, location, and the skill or template link. The message and the standard text are in a fenced block after the table, so an import specifier cannot become a Markdown link or a GitHub mention. Pull request body problems use rule ids `pr-body-section` and `pr-body-demo` and link to `.github/pull_request_template.md`.
+- Findings table: level and the skill or template link. The rule id, file path, message, and standard text are in a fenced block after the table, so a path cannot become a Markdown link, a GitHub mention, or an extra table cell. Pull request body problems use rule ids `pr-body-section` and `pr-body-demo` and link to `.github/pull_request_template.md`. Those rule ids are fixed strings, not file paths.
 - Tests table, in CI order through build: format, lint, typecheck, unit, migrate, integration, `pnpm build`, then Playwright. The table names the check and the command. Each result is a fenced block (`Result for <Check>:`), including `not verified`, so a checks-file value cannot become a Markdown link or a GitHub mention. The guard result is taken from the report (`pass` / `fail` / `not verified`). The script ignores a checks-file entry that tries to mark `node scripts/guard/pre-pr.mjs` or `pnpm guard` as passed. Other results, including `pnpm build`, start as `not verified` and change only when this run recorded that command. A checks file that is missing, not JSON, or not an object leaves those results `not verified` and adds `checks file` to the unverified list.
 - Pull request body: `not verified`, or the missing sections, or a line that the required sections and demo reason are present.
 - Code review checklist: `not verified`, or the notes file. A line that starts with `BLOCKING:` forces Changes requested.
@@ -73,9 +73,9 @@ Staff Eng review requested: @moellejc (`.github/CODEOWNERS`, pattern `*`).
 
 ### Findings
 
-| Level | Rule                    | Where                    | Doc                                                                                                                                               |
-| ----- | ----------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| error | `client-imports-server` | `src/components/a.tsx:2` | [facilityiq-nextjs-app-router](https://github.com/moellejc/facilityiq/blob/0123456789abcdef/.cursor/skills/facilityiq-nextjs-app-router/SKILL.md) |
+| Level | Doc                                                                                                                                               |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| error | [facilityiq-nextjs-app-router](https://github.com/moellejc/facilityiq/blob/0123456789abcdef/.cursor/skills/facilityiq-nextjs-app-router/SKILL.md) |
 
 ### Tests actually run
 

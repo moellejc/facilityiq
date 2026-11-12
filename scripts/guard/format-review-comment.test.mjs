@@ -100,7 +100,9 @@ test("maps a guard error to its rule id and skill doc, and does not invent other
     codeowners: owners,
   });
   assert.match(comment, /\*\*Verdict: Changes requested\*\*/);
-  assert.match(comment, /\| error \| `client-imports-server` \| `src\/components\/a\.tsx:2` \|/);
+  assert.match(comment, /\| error \| \[facilityiq-nextjs-app-router\]/);
+  assert.match(comment, /client-imports-server/);
+  assert.match(comment, /src\/components\/a\.tsx:2/);
   assert.match(
     comment,
     /\[facilityiq-nextjs-app-router\]\(https:\/\/github\.com\/moellejc\/facilityiq\/blob\/0123456789abcdef\/\.cursor\/skills\/facilityiq-nextjs-app-router\/SKILL\.md\)/,
@@ -384,6 +386,32 @@ test("a markdown link and a mention in a finding stay inside a fence", () => {
   assert.doesNotMatch(outside, /evil\.example/);
   assert.doesNotMatch(outside, /@victim/);
   assert.doesNotMatch(outside, /@someone/);
+});
+
+test("a where path with a pipe, mention, and link stays inside a fence", () => {
+  const where = "src/a|b @victim [phish](https://evil.example/w)";
+  const comment = formatReviewComment({
+    report: reportFor([
+      {
+        level: "error",
+        rule: "rule|@other [z](https://evil.example/r)",
+        file: where,
+        line: 2,
+        message: "kept",
+        skill: "facilityiq-nextjs-app-router",
+        standard: "Coding Conventions",
+      },
+    ]),
+    ref: SHA,
+    codeowners: owners,
+  });
+  const outside = textOutsideFences(comment);
+  assert.match(comment, /src\/a\|b @victim \[phish\]\(https:\/\/evil\.example\/w\):2/);
+  assert.match(comment, /rule\|@other \[z\]\(https:\/\/evil\.example\/r\)/);
+  assert.doesNotMatch(outside, /@victim/);
+  assert.doesNotMatch(outside, /@other/);
+  assert.doesNotMatch(outside, /evil\.example/);
+  assert.doesNotMatch(outside, /src\/a\|b/);
 });
 
 test("a demo paragraph with no link and no stated reason is pr-body-demo", () => {

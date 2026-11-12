@@ -153,10 +153,6 @@ function skillDoc(row, ref) {
   return blobLink(row.skill, path, ref);
 }
 
-function safeInline(value) {
-  return String(value).replace(/[`\r\n]/g, " ");
-}
-
 /** Drop fenced blocks so tests can prove untrusted text is not live Markdown. */
 export function textOutsideFences(markdown) {
   const lines = markdown.split("\n");
@@ -256,15 +252,11 @@ function findingsMarkdown(guard, body, ref) {
     lines.push("No findings.");
     return lines.join("\n");
   }
-  lines.push("| Level | Rule | Where | Doc |", "| --- | --- | --- | --- |");
+  lines.push("| Level | Doc |", "| --- | --- |");
   const whys = [];
   for (const row of guard.rows) {
-    lines.push(
-      `| ${row.level} | \`${safeInline(row.rule)}\` | \`${safeInline(row.where)}\` | ${skillDoc(row, ref)} |`,
-    );
-    whys.push(
-      `Why for \`${safeInline(row.rule)}\`:\n\n${fence([row.message, row.standard].filter(Boolean).join("\n"))}`,
-    );
+    lines.push(`| ${row.level} | ${skillDoc(row, ref)} |`);
+    whys.push(fence([row.rule, row.where, row.message, row.standard].filter(Boolean).join("\n")));
   }
   for (const problem of bodyRows) {
     const doc = blobLink("pull_request_template.md", ".github/pull_request_template.md", ref);
