@@ -37,6 +37,8 @@ For the cost-by-category ticket, export `GUARD_SCOPE=finance-route`. Otherwise l
 
 Load `facilityiq-feature-development` and the domain skills the files touch (`AGENTS.md` table). For a finance page that includes `facilityiq-nextjs-app-router`, `facilityiq-analytics-kpis`, and `facilityiq-unit-testing`.
 
+When the change adds a URL, pick files with `nextjs-app-router-route`, then follow `facilityiq-nextjs-app-router` or `facilityiq-api-routes`. When it mutates data, pick the adapter with `nextjs-server-action-vs-route-handler`. Cache policy stays in `facilityiq-client-state-and-caching`. Next.js function signatures are in `nextjs-caching-and-revalidation`. A Next.js version bump is not a first PR. It is `nextjs-upgrade-assistant`, and it does not merge.
+
 ## 5. Before saying done
 
 1. `pnpm guard` is green. Fix findings. Do not weaken `.cursor/guardrails.json`.
@@ -47,4 +49,4 @@ Load `facilityiq-feature-development` and the domain skills the files touch (`AG
 
 ## Patterns the guard already rejects
 
-`getServerSideProps`, `next/router`, `next/head`, sync `params`, async Client Components, Drizzle in routes or pages, repository imports from routes or pages, client components importing services, `toFixed` in UI, raw `error.message` to clients.
+`getServerSideProps` (`gssp`), `next/router` (`next-router`), `next/head` (`next-head`), `next/legacy/image` (`legacy-image`), sync `params` (`sync-params`), async Client Components (`async-client`), Drizzle in routes or pages (`route-or-page-imports-db`), repository imports from routes or pages (`route-imports-repository`, `ui-imports-repository`), client components importing services (`client-imports-server`), `toFixed` in UI (`adhoc-tofixed`), raw `error.message` to clients (`raw-error-to-client`). The ids are keys in `.cursor/guardrails.json`. `nextjs-app-router-route` explains the App Router ones.

@@ -12,18 +12,19 @@ Skills live in `.cursor/skills/<name>/SKILL.md`. Read the whole skill before act
 
 ## 1. Pick a workflow skill
 
-| Task                                                                                | Workflow skill                                             |
-| ----------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| New feature, endpoint, page, panel, KPI, scenario, insight rule, job, 3D capability | `facilityiq-feature-development`                           |
-| Bug, regression, wrong number, failing test, data leak                              | `facilityiq-bug-fixing`                                    |
-| Refactor, restructure, cleanup, performance work                                    | `facilityiq-refactoring`                                   |
-| Add or upgrade a dependency, vulnerability fix                                      | `facilityiq-dependency-upgrades`                           |
-| Docs, README, `.env.example`, skills, `AGENTS.md`                                   | `facilityiq-documentation-updates`                         |
-| Before saying work is done, opening a PR, writing a PR description                  | `facilityiq-pr-readiness`                                  |
-| Reviewing a PR or diff                                                              | `facilityiq-code-review`                                   |
-| Change touching auth, tenancy, files, secrets, AI, or caching                       | add `facilityiq-security-review`                           |
-| Orienting in the codebase                                                           | `facilityiq-coding-conventions` (overview and skill index) |
-| First change, or "where do I start"                                                 | `facilityiq-first-contribution`                            |
+| Task                                                                                | Workflow skill                                                                     |
+| ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| New feature, endpoint, page, panel, KPI, scenario, insight rule, job, 3D capability | `facilityiq-feature-development`                                                   |
+| Bug, regression, wrong number, failing test, data leak                              | `facilityiq-bug-fixing`                                                            |
+| Refactor, restructure, cleanup, performance work                                    | `facilityiq-refactoring`                                                           |
+| Add or upgrade a dependency, vulnerability fix                                      | `facilityiq-dependency-upgrades`                                                   |
+| Next.js upgrade (release notes, official codemod, deprecated-API list)              | `nextjs-upgrade-assistant`, then `facilityiq-dependency-upgrades` for the lockfile |
+| Docs, README, `.env.example`, skills, `AGENTS.md`                                   | `facilityiq-documentation-updates`                                                 |
+| Before saying work is done, opening a PR, writing a PR description                  | `facilityiq-pr-readiness`                                                          |
+| Reviewing a PR or diff                                                              | `facilityiq-code-review`                                                           |
+| Change touching auth, tenancy, files, secrets, AI, or caching                       | add `facilityiq-security-review`                                                   |
+| Orienting in the codebase                                                           | `facilityiq-coding-conventions` (overview and skill index)                         |
+| First change, or "where do I start"                                                 | `facilityiq-first-contribution`                                                    |
 
 Every code change ends with `facilityiq-pr-readiness`. Run `pnpm guard` before that. What the guard enforces, and what stays advisory, is in `docs/guardrails.md`. The `/first-pr` command follows the first-contribution skill. GitFlow says feature PRs target `develop`; this repo has no `develop` branch, so PRs target `main` until a maintainer creates it.
 
@@ -39,6 +40,8 @@ Every code change ends with `facilityiq-pr-readiness`. Run `pnpm guard` before t
 | Charts and KPI cards                            | `src/components/charts`, `src/components/dashboard`                          | `facilityiq-charts-dataviz`           |
 | 3D digital twin                                 | `src/components/3d`, `src/lib/twin`                                          | `facilityiq-3d-digital-twin`          |
 | Client state and caching                        | URL params, providers, `revalidatePath`                                      | `facilityiq-client-state-and-caching` |
+
+Before editing those files, pick the pattern with `nextjs-app-router-route`, `nextjs-server-action-vs-route-handler`, or `nextjs-caching-and-revalidation`. Each one links back to the skill in this table.
 
 **Backend**
 

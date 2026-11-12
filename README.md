@@ -27,6 +27,8 @@ Password for every account: `FacilityIQ-demo-2026`
 
 The seed is deterministic. It deletes Acme Manufacturing and writes the same facility, 598 assets, 30 days of metrics (ending 2026-11-01 UTC), alerts, six insights, and three scenarios. Password hashes are salted, so they are not byte-identical across runs. The password is.
 
+Settings is the signed-in person's profile. Organization administrators also see **Admin** after Settings in the sidebar. That page renames the organization, changes member roles, adds an existing account, removes access, and adds, updates, or removes facilities and integration records. Integration records do not store credentials and do not run a sync. The last organization administrator cannot be removed or demoted.
+
 ## Run with Docker
 
 ```bash
@@ -121,7 +123,7 @@ Integration tests use `DATABASE_URL_TEST` and apply migrations themselves. They 
 
 ## Layout
 
-Business rules live in `src/server/services`, `src/server/repositories`, and `src/lib`. Route handlers and React components call those modules. KPI definitions are in `docs/KPI_FORMULAS.md`. The architecture plan and the Phase 1 exceptions are in `docs/ARCHITECTURE.md`. Pre-PR guardrails are in `docs/guardrails.md`.
+Business rules live in `src/server/services`, `src/server/repositories`, and `src/lib`. Route handlers and React components call those modules. KPI definitions are in `docs/KPI_FORMULAS.md`. The architecture plan and the Phase 1 exceptions are in `docs/ARCHITECTURE.md`. Pre-PR guardrails are in `docs/guardrails.md`. The Slack → Linear → pull request flow is specified in `automations/slack-linear-agent-pr.md` and `bot/approval-flow.md`. `node scripts/cursor-api/launch-agent.mjs --help` prints the Cloud Agents helper. That helper is UNTESTED against a live key.
 
 ## Local development passwords
 

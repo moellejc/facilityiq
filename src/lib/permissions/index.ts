@@ -82,6 +82,20 @@ export function permissionsFor(role: Role): Permission[] {
   return PERMISSIONS.filter((permission) => roleCan(role, permission));
 }
 
+/**
+ * Admin panel gate. Uses the existing org_admin-only permissions.
+ * There is no separate admin role.
+ */
+export function canAccessAdmin(role: Role): boolean {
+  return (
+    roleCan(role, "members:write") &&
+    roleCan(role, "organization:update") &&
+    roleCan(role, "facilities:write") &&
+    roleCan(role, "integrations:manage") &&
+    roleCan(role, "settings:manage")
+  );
+}
+
 export const ROLE_LABELS: Record<Role, string> = {
   org_admin: "Organization administrator",
   operations_manager: "Operations manager",
