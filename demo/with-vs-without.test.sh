@@ -185,4 +185,65 @@ else
   echo "  ok"
 fi
 
+inode_of() {
+  stat -c %i "$1" 2>/dev/null || stat -f %i "$1"
+}
+
+echo "case: clones do not share object inodes"
+out="$(run_case clones DEMO_KEEP_WORKTREES=1)"
+[[ "$(cat "$tmp/clones.code")" -eq 0 ]] || fail "clone case exit $(cat "$tmp/clones.code")"
+with_clone="$(sed -n 's/^  with setup:[[:space:]]*//p' "$out" | head -1)"
+[[ -d "$with_clone" ]] || fail "kept checkout missing"
+declare -A primary_inodes=()
+while IFS= read -r object; do
+  primary_inodes["$(inode_of "$object")"]=1
+done < <(find "$ROOT/.git/objects" -type f)
+compared=0
+while IFS= read -r object; do
+  id="$(inode_of "$object")"
+  [[ -z "${primary_inodes[$id]:-}" ]] || fail "clone shares an object inode: $object"
+  compared=1
+done < <(find "$with_clone/.git/objects" -type f)
+[[ "$compared" -eq 1 ]] || fail "clone has no git objects"
+[[ ! -s "$with_clone/.git/objects/info/alternates" ]] || fail "clone lists an object alternate"
+rm -rf "$(dirname "$with_clone")"
+echo "  ok"
+
+echo "case: object-check failure still deletes the temp directory"
+packs=()
+for pack in "$ROOT/.git/objects/pack/"*.pack; do
+  [[ -f "$pack" ]] || continue
+  packs+=("$pack")
+done
+out="$(run_case objfail DEMO_OBJECT_CHECK_FAIL=1)"
+[[ "$(cat "$tmp/objfail.code")" -eq 1 ]] || fail "object-check exit $(cat "$tmp/objfail.code"), expected 1"
+checkout_root="$(sed -n 's/^checkout-root: //p' "$out" | head -1)"
+[[ -n "$checkout_root" ]] || fail "checkout-root was not printed"
+[[ ! -d "$checkout_root" ]] || fail "temp directory was left behind: $checkout_root"
+for pack in "${packs[@]}"; do
+  [[ -f "$pack" ]] || fail "primary pack was removed: $pack"
+done
+echo "  ok"
+
+echo "case: guard fallback does not change the script directory"
+cwd_log="$tmp/cwd.txt"
+mkdir -p "$tmp/bin"
+ln -s "$(command -v node)" "$tmp/bin/node"
+ln -s "$(command -v git)" "$tmp/bin/git"
+set +e
+env -i \
+  PATH="$tmp/bin:/usr/bin:/bin" \
+  HOME="$HOME" \
+  TMPDIR="${TMPDIR:-/tmp}" \
+  LANG="${LANG:-C.UTF-8}" \
+  DEMO_CWD_LOG="$cwd_log" \
+  bash "$ROOT/demo/run-guard-demo.sh" >"$tmp/cwd.out" 2>&1
+cwd_code=$?
+set -e
+[[ "$cwd_code" -eq 0 ]] || fail "fallback demo exit $cwd_code — see $tmp/cwd.out"
+PATH="$tmp/bin:/usr/bin:/bin" command -v pnpm >/dev/null && fail "restricted PATH still contains pnpm"
+recorded_cwd="$(cat "$cwd_log")"
+[[ "$recorded_cwd" == "$ROOT" ]] || fail "script cwd changed to $recorded_cwd"
+echo "  ok"
+
 echo "with-vs-without checks passed"

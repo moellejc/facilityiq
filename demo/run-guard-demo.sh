@@ -184,4 +184,7 @@ else
 fi
 
 rm -f "$bad_out" "$fix_out"
+if [[ -n "${DEMO_CWD_LOG:-}" ]]; then
+  pwd >"$DEMO_CWD_LOG"
+fi
 exit "$demo_status"

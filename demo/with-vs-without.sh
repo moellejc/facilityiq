@@ -66,6 +66,10 @@ make_checkout() {
   for f in "$dest/.git/objects/pack/"*.pack "$dest/.git/objects/pack/"*.idx; do
     [[ -f "$f" ]] || continue
     pack_name="$(basename "$f")"
+    if [[ "${DEMO_OBJECT_CHECK_FAIL:-}" == "1" ]]; then
+      echo "Refusing to continue: demo object-check failure." >&2
+      exit 1
+    fi
     src="$ROOT/.git/objects/pack/$pack_name"
     if [[ -f "$src" ]] && same_inode "$f" "$src"; then
       echo "Refusing to continue: clone shares git object inodes with the primary checkout." >&2
@@ -81,6 +85,9 @@ make_checkout() {
   fi
 }
 
+if [[ "${DEMO_OBJECT_CHECK_FAIL:-}" == "1" ]]; then
+  echo "checkout-root: ${base}"
+fi
 make_checkout "$with_wt"
 make_checkout "$without_wt"
 
