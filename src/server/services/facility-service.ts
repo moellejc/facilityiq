@@ -2,11 +2,16 @@ import "server-only";
 
 import { AppError } from "@/lib/errors";
 import { assertRole } from "@/lib/permissions";
-import { facilityCreateSchema, facilityUpdateSchema } from "@/lib/validation";
+import {
+  facilityCreateSchema,
+  facilityNameSearchSchema,
+  facilityUpdateSchema,
+} from "@/lib/validation";
 
 import {
   deleteFacility,
   insertFacility,
+  searchFacilitiesByName,
   updateFacility,
   type FacilityPatch,
 } from "../repositories/facilities";
@@ -27,6 +32,18 @@ function presentFacility(facility: {
     facilityType: facility.facilityType,
     squareFootage: facility.squareFootage,
     timezone: facility.timezone,
+  };
+}
+
+export async function searchFacilities(context: RequestContext, query: unknown) {
+  assertRole(context.role, "facilities:read");
+  const parsed = facilityNameSearchSchema.parse(query);
+  const page = await searchFacilitiesByName(context.organizationId, context.userId, parsed);
+  return {
+    data: page.data.map(presentFacility),
+    page: page.page,
+    limit: page.limit,
+    total: page.total,
   };
 }
 

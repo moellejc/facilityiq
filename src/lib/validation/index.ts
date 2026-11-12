@@ -106,6 +106,15 @@ export const integrationUpdateSchema = z
     message: "At least one field is required.",
   });
 
+export const facilityNameSearchSchema = paginationSchema.extend({
+  q: z
+    .string()
+    .trim()
+    .min(2)
+    .max(40)
+    .regex(/^[A-Za-z0-9 ]+$/),
+});
+
 export const assetListSchema = paginationSchema.extend({
   assetType: z
     .enum(["storage_rack", "pallet", "loading_dock", "packing_station", "conveyor", "forklift"])

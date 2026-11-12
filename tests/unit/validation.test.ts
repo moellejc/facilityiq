@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   facilityCreateSchema,
+  facilityNameSearchSchema,
   facilityUpdateSchema,
   integrationCreateSchema,
   loginSchema,
@@ -49,6 +50,23 @@ describe("request schemas", () => {
     expect(facilityUpdateSchema.safeParse({ squareFootage: "-4" }).success).toBe(false);
     expect(facilityUpdateSchema.safeParse({ squareFootage: "10.555" }).success).toBe(false);
     expect(facilityCreateSchema.safeParse({ name: "A" }).success).toBe(false);
+  });
+
+  it("accepts a facility name search and ignores a client organization id", () => {
+    expect(
+      facilityNameSearchSchema.parse({
+        q: " West ",
+        organizationId: "e96b9b4b-9e1f-5160-af43-d090000e6b64",
+      }),
+    ).toEqual({ q: "West", page: 1, limit: 25, order: "asc" });
+  });
+
+  it("rejects a facility name search that is too short, too long, or not plain text", () => {
+    expect(facilityNameSearchSchema.safeParse({ q: "a" }).success).toBe(false);
+    expect(facilityNameSearchSchema.safeParse({ q: "x".repeat(41) }).success).toBe(false);
+    expect(facilityNameSearchSchema.safeParse({ q: "west%" }).success).toBe(false);
+    expect(facilityNameSearchSchema.safeParse({ q: "west_dock" }).success).toBe(false);
+    expect(facilityNameSearchSchema.safeParse({ q: "west", limit: "101" }).success).toBe(false);
   });
 
   it("accepts an integration record without a reference", () => {

@@ -17,6 +17,7 @@ import {
   listAreas,
   listAssets,
   listFacilities,
+  searchFacilitiesByName,
 } from "@/server/repositories/facilities";
 
 const suffix = randomUUID().slice(0, 8);
@@ -77,6 +78,17 @@ describe("organization isolation", () => {
     const visible = await listFacilities(orgA, userA);
     expect(visible.map((facility) => facility.id)).toEqual([facilityA]);
     expect(visible.map((facility) => facility.id)).not.toContain(facilityB);
+  });
+
+  it("does not return another organization's facilities from a name search", async () => {
+    const page = await searchFacilitiesByName(orgA, userA, {
+      q: "Plant",
+      page: 1,
+      limit: 25,
+      order: "asc",
+    });
+    expect(page.total).toBe(1);
+    expect(page.data.map((facility) => facility.id)).toEqual([facilityA]);
   });
 
   it("does not fetch another organization's facility by id", async () => {

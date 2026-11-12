@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, sql } from "drizzle-orm";
 
 import { withTenant } from "@/db/tenant";
 import {
@@ -53,6 +53,29 @@ export async function listFacilities(organizationId: string, userId: string) {
       .from(facilities)
       .where(eq(facilities.organizationId, organizationId))
       .orderBy(asc(facilities.name));
+  });
+}
+
+export async function searchFacilitiesByName(
+  organizationId: string,
+  userId: string,
+  query: { q: string; page: number; limit: number; order: "asc" | "desc" },
+) {
+  return withTenant({ organizationId, userId }, async (tx) => {
+    const where = and(
+      eq(facilities.organizationId, organizationId),
+      ilike(facilities.name, `%${query.q}%`),
+    );
+    const [totalRow] = await tx.select({ total: count() }).from(facilities).where(where);
+    const nameOrder = query.order === "desc" ? desc(facilities.name) : asc(facilities.name);
+    const data = await tx
+      .select(facilitySummaryColumns)
+      .from(facilities)
+      .where(where)
+      .orderBy(nameOrder, asc(facilities.id))
+      .limit(query.limit)
+      .offset((query.page - 1) * query.limit);
+    return { data, total: Number(totalRow?.total ?? 0), page: query.page, limit: query.limit };
   });
 }
 
