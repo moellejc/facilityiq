@@ -46,6 +46,51 @@ describe("facility address form mapping", () => {
     ).toEqual({ address: null });
   });
 
+  it("sends the trimmed lines when the edit form does not clear the address", () => {
+    expect(
+      addressUpdateBody(
+        form({
+          addressStreet: " 4800 Harbor Avenue ",
+          addressCity: " Tacoma ",
+          addressRegion: " WA ",
+          addressPostalCode: " 98421 ",
+          addressCountry: " United States ",
+        }),
+      ),
+    ).toEqual({
+      address: {
+        street: "4800 Harbor Avenue",
+        city: "Tacoma",
+        region: "WA",
+        postalCode: "98421",
+        country: "United States",
+      },
+    });
+  });
+
+  it("sends the trimmed lines when clearAddress is not the string true", () => {
+    expect(
+      addressUpdateBody(
+        form({
+          clearAddress: "false",
+          addressStreet: " 1 Main Street ",
+          addressCity: "Tacoma",
+          addressRegion: "WA",
+          addressPostalCode: "98421",
+          addressCountry: "United States",
+        }),
+      ),
+    ).toEqual({
+      address: {
+        street: "1 Main Street",
+        city: "Tacoma",
+        region: "WA",
+        postalCode: "98421",
+        country: "United States",
+      },
+    });
+  });
+
   it("maps a blank street to fieldErrors.addressStreet", () => {
     const parsed = facilityUpdateSchema.safeParse({
       address: {
@@ -63,5 +108,9 @@ describe("facility address form mapping", () => {
         fieldErrors: { addressStreet: "Street is required." },
       });
     }
+  });
+
+  it("returns null when the error is not a validation error", () => {
+    expect(addressFieldErrors(new Error("nope"))).toBeNull();
   });
 });
