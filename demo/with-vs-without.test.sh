@@ -71,14 +71,18 @@ done
   if [[ -n "$workspace" ]]; then
     echo "REMOTES:$(git -C "$workspace" remote -v)"
     echo "WORKTREES:$(git -C "$workspace" worktree list)"
-    mkdir -p "$workspace/src"
+    mkdir -p "$workspace/src" "__OUTSIDE__"
     printf 'export const a = 1\n' >"$workspace/src/ok.ts"
     printf 'export const b = 1\n' >"$workspace/src/comma,name.ts"
+    ln -s "__OUTSIDE__/secret" "$workspace/src/linked.ts"
+    rm -rf "$workspace/.cursor"
+    ln -s "__OUTSIDE__" "$workspace/.cursor"
   fi
 } >>"$log"
 EOF
 agent_body="$(cat "$tmp/agent")"
-printf '%s\n' "${agent_body//__AGENT_LOG__/$tmp/agent.log}" >"$tmp/agent"
+agent_body="${agent_body//__AGENT_LOG__/$tmp/agent.log}"
+printf '%s\n' "${agent_body//__OUTSIDE__/$tmp/outside}" >"$tmp/agent"
 chmod +x "$tmp/agent"
 
 run_case() {
@@ -134,6 +138,9 @@ grep -q 'HOOKS:present' "$tmp/armed.log" || fail "hooks were not present"
 grep -q "synthetic-sa" "$out" && fail "armed run printed the key"
 grep -q "canary-value" "$out" && fail "armed run printed the canary"
 grep -q "Skipping unsafe path: src/comma,name.ts" "$out" || fail "unsafe path was not skipped"
+grep -q "Skipping unsafe path: src/linked.ts" "$out" || fail "symlink path was not skipped"
+grep -q "Refusing to write guardrails.json" "$out" || fail "symlink .cursor was followed"
+[[ ! -e "$tmp/outside/guardrails.json" ]] || fail "guardrails.json was written through a symlink"
 grep -q "$ROOT" "$tmp/armed.log" && fail "agent log contains the primary checkout path"
 # The child HOME must not be this developer's home directory.
 while IFS= read -r line; do

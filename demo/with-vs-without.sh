@@ -226,7 +226,8 @@ run_agent "with-setup" "$with_wt"
 run_agent "without-setup" "$without_wt"
 
 # A relative path the guard may read. Reject commas (GUARD_FILES splits on
-# them), absolute paths, and any '..' segment.
+# them), absolute paths, and any '..' segment. Also reject a symlink anywhere
+# on the path so a later unsandboxed read or write cannot leave the checkout.
 is_safe_relpath() {
   local path="$1"
   [[ -n "$path" ]] || return 1
@@ -234,6 +235,28 @@ is_safe_relpath() {
   [[ "$path" != *","* ]] || return 1
   [[ "$path" != *".."* ]] || return 1
   [[ "$path" != *$'\n'* && "$path" != *$'\r'* ]] || return 1
+  return 0
+}
+
+path_stays_in_checkout() {
+  local root="$1" rel="$2" acc part rest
+  is_safe_relpath "$rel" || return 1
+  [[ -L "$root" ]] && return 1
+  acc="$root"
+  rest="$rel"
+  while [[ -n "$rest" ]]; do
+    part="${rest%%/*}"
+    if [[ "$rest" == */* ]]; then
+      rest="${rest#*/}"
+    else
+      rest=""
+    fi
+    [[ -n "$part" && "$part" != "." ]] || continue
+    acc="${acc}/${part}"
+    if [[ -L "$acc" ]]; then
+      return 1
+    fi
+  done
   return 0
 }
 
@@ -251,7 +274,7 @@ product_changes() {
         continue
         ;;
     esac
-    if ! is_safe_relpath "$path"; then
+    if ! path_stays_in_checkout "$wt" "$path"; then
       echo "Skipping unsafe path: ${path}" >&2
       continue
     fi
@@ -295,14 +318,26 @@ run_guard_on() {
     echo
     return 0
   fi
+  if [[ -L "$wt" || -L "$wt/.cursor" || -L "$wt/.cursor/guardrails.json" ]]; then
+    echo "Refusing to write guardrails.json: path escapes the checkout through a symlink." >&2
+    echo
+    return 0
+  fi
   if [[ ! -f "$wt/.cursor/guardrails.json" ]]; then
-    mkdir -p "$wt/.cursor"
+    if [[ ! -d "$wt/.cursor" ]]; then
+      mkdir "$wt/.cursor"
+    fi
+    if [[ -L "$wt/.cursor" ]]; then
+      echo "Refusing to write guardrails.json: path escapes the checkout through a symlink." >&2
+      echo
+      return 0
+    fi
     cp "$ROOT/.cursor/guardrails.json" "$wt/.cursor/guardrails.json"
     copied=1
   fi
   while IFS= read -r path; do
     [[ -n "$path" ]] || continue
-    if ! is_safe_relpath "$path"; then
+    if ! path_stays_in_checkout "$wt" "$path"; then
       echo "Skipping unsafe path: ${path}" >&2
       continue
     fi
@@ -315,7 +350,7 @@ run_guard_on() {
   if [[ -z "$joined" ]]; then
     echo "(no safe paths to scan)"
     echo
-    if [[ "$copied" -eq 1 ]]; then
+    if [[ "$copied" -eq 1 && ! -L "$wt/.cursor" && ! -L "$wt/.cursor/guardrails.json" ]]; then
       rm -f "$wt/.cursor/guardrails.json"
     fi
     return 0
@@ -331,7 +366,7 @@ run_guard_on() {
   echo "=== ${label}: finding -> rule -> doc ==="
   print_findings_with_docs "$out"
   echo
-  if [[ "$copied" -eq 1 ]]; then
+  if [[ "$copied" -eq 1 && ! -L "$wt/.cursor" && ! -L "$wt/.cursor/guardrails.json" ]]; then
     rm -f "$wt/.cursor/guardrails.json"
   fi
   cp "$out" "$base/${label}.guard.txt"
