@@ -70,31 +70,11 @@ describe("request schemas", () => {
     });
   });
 
-  it("rejects a partial, blank, or oversized street address", () => {
+  it("rejects a partial street address object", () => {
     expect(facilityAddressSchema.safeParse({ street: "4800 Harbor Avenue" }).success).toBe(false);
-    expect(
-      facilityUpdateSchema.safeParse({
-        address: {
-          street: "   ",
-          city: "Tacoma",
-          region: "WA",
-          postalCode: "98421",
-          country: "United States",
-        },
-      }).success,
-    ).toBe(false);
-    expect(
-      facilityCreateSchema.safeParse({
-        name: "North Plant",
-        address: {
-          street: "4800 Harbor Avenue",
-          city: "Tacoma",
-          region: "WA",
-          postalCode: "123456789012345678901",
-          country: "United States",
-        },
-      }).success,
-    ).toBe(false);
+  });
+
+  it("rejects a blank street with Street is required", () => {
     const blankStreet = facilityAddressSchema.safeParse({
       street: " ",
       city: "Tacoma",
@@ -108,6 +88,21 @@ describe("request schemas", () => {
         blankStreet.error.issues.some((issue) => issue.message === "Street is required."),
       ).toBe(true);
     }
+  });
+
+  it("rejects an oversized postal code", () => {
+    expect(
+      facilityCreateSchema.safeParse({
+        name: "North Plant",
+        address: {
+          street: "4800 Harbor Avenue",
+          city: "Tacoma",
+          region: "WA",
+          postalCode: "123456789012345678901",
+          country: "United States",
+        },
+      }).success,
+    ).toBe(false);
   });
 
   it("allows an address to be omitted or cleared without changing other facility fields", () => {

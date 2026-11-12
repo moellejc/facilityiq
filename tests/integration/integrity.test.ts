@@ -76,6 +76,42 @@ describe("referential integrity", () => {
     await db.delete(users).where(eq(users.id, localUser));
   });
 
+  it("rejects a street address made only of spaces", async () => {
+    const db = getDb();
+    const localOrg = randomUUID();
+    const localUser = randomUUID();
+    await db.insert(users).values({
+      id: localUser,
+      email: `blank-address-${suffix}@test.local`,
+      name: "Blank address",
+    });
+    await db.insert(organizations).values({
+      id: localOrg,
+      name: "Blank Address Org",
+      slug: `blank-address-${suffix}`,
+    });
+
+    let thrown: unknown;
+    try {
+      await db.insert(facilities).values({
+        organizationId: localOrg,
+        name: "Blank address",
+        facilityType: "warehouse",
+        addressStreet: " ",
+        addressCity: " ",
+        addressRegion: " ",
+        addressPostalCode: " ",
+        addressCountry: " ",
+      });
+    } catch (error) {
+      thrown = error;
+    }
+    expect(errorText(thrown)).toContain("facilities_address_complete");
+
+    await db.delete(organizations).where(eq(organizations.id, localOrg));
+    await db.delete(users).where(eq(users.id, localUser));
+  });
+
   it("rejects a facility that points at a missing organization", async () => {
     await expect(
       getDb().insert(facilities).values({
