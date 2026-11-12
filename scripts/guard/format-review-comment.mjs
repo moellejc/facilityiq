@@ -55,6 +55,30 @@ export function staffEngReviewers(codeownersText) {
   return owners;
 }
 
+/** Last `(...)` group from renderFindings, including a standard that itself contains parentheses. */
+function splitStandard(withoutSkill) {
+  const text = withoutSkill.trimEnd();
+  if (!text.endsWith(")")) return { message: text.trim(), standard: "" };
+  let depth = 0;
+  for (let i = text.length - 1; i >= 0; i--) {
+    const char = text[i];
+    if (char === ")") depth++;
+    else if (char === "(") {
+      depth--;
+      if (depth === 0) {
+        if (i > 0 && text[i - 1] === " ") {
+          return {
+            message: text.slice(0, i - 1).trim(),
+            standard: text.slice(i + 1, -1),
+          };
+        }
+        break;
+      }
+    }
+  }
+  return { message: text.trim(), standard: "" };
+}
+
 export function parseGuardReport(report) {
   const text = typeof report === "string" ? report : "";
   const summary = text.match(
@@ -68,11 +92,7 @@ export function parseGuardReport(report) {
     const skillMatch = / Skill: `([^`]+)`\.$/.exec(why);
     const skill = skillMatch?.[1] ?? "";
     const withoutSkill = skillMatch ? why.slice(0, skillMatch.index) : why;
-    const standardMatch = / \(([^()]*)\)$/.exec(withoutSkill);
-    const standard = standardMatch?.[1] ?? "";
-    const message = (
-      standardMatch ? withoutSkill.slice(0, standardMatch.index) : withoutSkill
-    ).trim();
+    const { message, standard } = splitStandard(withoutSkill);
     rows.push({ level: match[1], rule: match[2], where: match[3], message, skill, standard });
   }
   const errors = summary ? Number(summary[2]) : null;

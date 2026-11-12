@@ -81,6 +81,37 @@ test("an automation spec is inside the infra scope", () => {
   assert.equal(matchesAny("automations/pr-guardrail-review.md", allow), true);
 });
 
+test("a standard that contains parentheses is not absorbed into the message", () => {
+  const parsed = parseGuardReport(
+    reportFor([
+      {
+        level: "error",
+        rule: "legacy-image",
+        file: "src/a.tsx",
+        line: 1,
+        message: "Legacy image component. Use next/image.",
+        skill: "facilityiq-ui-design-system",
+        standard: "Coding Conventions §17 (Pages Router leftovers)",
+      },
+      {
+        level: "warn",
+        rule: "tenancy-test-missing",
+        file: "src/server/repositories",
+        line: 0,
+        message: "Advisory: a repository changed.",
+        skill: "facilityiq-multi-tenancy-rls",
+        standard: "Coding Conventions §7; Unit Test Standards §2 and §4 (advisory)",
+      },
+    ]),
+  );
+  const image = parsed.rows.find((row) => row.rule === "legacy-image");
+  assert.equal(image.standard, "Coding Conventions §17 (Pages Router leftovers)");
+  assert.equal(image.message, "Legacy image component. Use next/image.");
+  const tenancy = parsed.rows.find((row) => row.rule === "tenancy-test-missing");
+  assert.equal(tenancy.standard, "Coding Conventions §7; Unit Test Standards §2 and §4 (advisory)");
+  assert.equal(tenancy.message, "Advisory: a repository changed.");
+});
+
 test("parses a pre-pr table row into rule, skill, and standard", () => {
   const parsed = parseGuardReport(reportFor([clientError]));
   assert.equal(parsed.ok, true);
