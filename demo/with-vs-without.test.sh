@@ -1,0 +1,252 @@
+#!/usr/bin/env bash
+# Demo-fixture regression for the live-agent gate. Uses a fake `agent` binary.
+# Does not call the real Cursor CLI and does not use a real key.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PAGE="src/app/(dashboard)/finance/cost-by-category/page.tsx"
+fail() {
+  echo "FAIL: $*" >&2
+  exit 1
+}
+
+tmp="$(mktemp -d)"
+created_page=0
+created_page_dir=0
+page_dir="$(dirname "$ROOT/$PAGE")"
+cleanup() {
+  local status=$?
+  rm -rf "$tmp"
+  if [[ "$created_page" -eq 1 ]]; then
+    rm -f "$ROOT/$PAGE"
+  fi
+  if [[ "$created_page_dir" -eq 1 ]]; then
+    rmdir "$page_dir" 2>/dev/null || true
+  fi
+  exit "$status"
+}
+trap cleanup EXIT
+
+cat >"$tmp/agent" <<'EOF'
+#!/usr/bin/env bash
+log="__AGENT_LOG__"
+workspace=""
+prev=""
+for arg in "$@"; do
+  if [[ "$prev" == "--workspace" ]]; then
+    workspace="$arg"
+  fi
+  prev="$arg"
+done
+{
+  printf 'ARGS:'
+  printf ' %q' "$@"
+  printf '\n'
+  if [[ -n "${CANARY_SECRET:-}" ]]; then
+    echo "CANARY:set"
+  else
+    echo "CANARY:unset"
+  fi
+  if [[ -n "${CURSOR_API_KEY:-}" ]]; then
+    echo "API_KEY:set"
+  else
+    echo "API_KEY:unset"
+  fi
+  if [[ -n "${CURSOR_SERVICE_ACCOUNT_KEY:-}" ]]; then
+    echo "SERVICE_KEY:set"
+  else
+    echo "SERVICE_KEY:unset"
+  fi
+  echo "HOME:${HOME:-}"
+  if [[ -n "$workspace" && -f "$workspace/.cursor/hooks.json" && -d "$workspace/.cursor/hooks" ]]; then
+    echo "HOOKS:present"
+  else
+    echo "HOOKS:absent"
+  fi
+  if [[ -n "$workspace" && -f "$workspace/.cursor/hooks.json" ]] && grep -q '"stop"' "$workspace/.cursor/hooks.json"; then
+    echo "STOP_HOOK:present"
+  else
+    echo "STOP_HOOK:absent"
+  fi
+  if [[ -n "$workspace" ]]; then
+    echo "REMOTES:$(git -C "$workspace" remote -v)"
+    echo "WORKTREES:$(git -C "$workspace" worktree list)"
+    mkdir -p "$workspace/src" "__OUTSIDE__"
+    printf 'export const a = 1\n' >"$workspace/src/ok.ts"
+    rm -f "$workspace/README.md"
+    printf 'export const b = 1\n' >"$workspace/src/comma,name.ts"
+    ln -s "__OUTSIDE__/secret" "$workspace/src/linked.ts"
+    rm -rf "$workspace/.cursor"
+    ln -s "__OUTSIDE__" "$workspace/.cursor"
+    cat >"$workspace/fsmonitor-plant.sh" <<'EOS'
+#!/bin/sh
+echo planted >"__OUTSIDE__/fsmonitor-ran"
+exit 0
+EOS
+    chmod +x "$workspace/fsmonitor-plant.sh"
+    git -C "$workspace" config core.fsmonitor "$workspace/fsmonitor-plant.sh"
+  fi
+} >>"$log"
+EOF
+agent_body="$(cat "$tmp/agent")"
+agent_body="${agent_body//__AGENT_LOG__/$tmp/agent.log}"
+printf '%s\n' "${agent_body//__OUTSIDE__/$tmp/outside}" >"$tmp/agent"
+chmod +x "$tmp/agent"
+
+run_case() {
+  local name="$1"
+  shift
+  : >"$tmp/agent.log"
+  local out="$tmp/${name}.out"
+  set +e
+  env -i \
+    PATH="$tmp:${PATH}" \
+    HOME="${HOME}" \
+    TMPDIR="${TMPDIR:-/tmp}" \
+    LANG="${LANG:-C.UTF-8}" \
+    "$@" \
+    bash "$ROOT/demo/with-vs-without.sh" >"$out" 2>&1
+  local code=$?
+  set -e
+  cp "$tmp/agent.log" "$tmp/${name}.log"
+  echo "$code" >"$tmp/${name}.code"
+  printf '%s\n' "$out"
+}
+
+echo "case: no key"
+out="$(run_case nokey)"
+[[ "$(cat "$tmp/nokey.code")" -eq 0 ]] || fail "no-key exit $(cat "$tmp/nokey.code")"
+[[ ! -s "$tmp/nokey.log" ]] || fail "no-key executed agent"
+grep -q "Live agent: not verified." "$out" || fail "no-key missing not-verified"
+echo "  ok"
+
+echo "case: key without DEMO_RUN_AGENT"
+out="$(run_case keyonly CURSOR_API_KEY=synthetic-key CANARY_SECRET=canary-value)"
+[[ "$(cat "$tmp/keyonly.code")" -eq 0 ]] || fail "key-only exit $(cat "$tmp/keyonly.code")"
+[[ ! -s "$tmp/keyonly.log" ]] || fail "key-only executed agent"
+grep -q "DEMO_RUN_AGENT is not 1" "$out" || fail "key-only missing arming message"
+grep -q "synthetic-key" "$out" && fail "key-only printed the key"
+grep -q "canary-value" "$out" && fail "key-only printed the canary"
+echo "  ok"
+
+echo "case: armed with a service-account key"
+out="$(run_case armed DEMO_RUN_AGENT=1 CURSOR_SERVICE_ACCOUNT_KEY=synthetic-sa CANARY_SECRET=canary-value)"
+[[ "$(cat "$tmp/armed.code")" -eq 0 ]] || fail "armed exit $(cat "$tmp/armed.code") — see $out"
+[[ "$(grep -c '^ARGS:' "$tmp/armed.log")" -eq 2 ]] || fail "armed did not exec agent twice"
+grep -q -- '--sandbox' "$tmp/armed.log" || fail "argv missing --sandbox"
+grep -q 'enabled' "$tmp/armed.log" || fail "argv missing sandbox enabled"
+grep -q 'CANARY:set' "$tmp/armed.log" && fail "canary leaked into the child"
+grep -q 'CANARY:unset' "$tmp/armed.log" || fail "canary line missing"
+grep -q 'SERVICE_KEY:set' "$tmp/armed.log" && fail "service-account key was forwarded"
+grep -q 'API_KEY:set' "$tmp/armed.log" || fail "CURSOR_API_KEY was not set in the child"
+grep -q 'HOOKS:absent' "$tmp/armed.log" && fail "live agent ran without hooks"
+grep -q 'HOOKS:present' "$tmp/armed.log" || fail "hooks were not present"
+[[ "$(grep -c '^STOP_HOOK:present$' "$tmp/armed.log")" -eq 1 ]] || fail "with-setup must keep the stop hook"
+[[ "$(grep -c '^STOP_HOOK:absent$' "$tmp/armed.log")" -eq 1 ]] || fail "without-setup must not get the stop hook"
+grep -q "synthetic-sa" "$out" && fail "armed run printed the key"
+grep -q "canary-value" "$out" && fail "armed run printed the canary"
+grep -q "Skipping unsafe path: src/comma,name.ts" "$out" || fail "unsafe path was not skipped"
+grep -q "Skipping unsafe path: src/linked.ts" "$out" || fail "symlink path was not skipped"
+grep -q "Refusing to write guardrails.json" "$out" || fail "symlink .cursor was followed"
+[[ ! -e "$tmp/outside/guardrails.json" ]] || fail "guardrails.json was written through a symlink"
+[[ ! -e "$tmp/outside/fsmonitor-ran" ]] || fail "clone core.fsmonitor ran outside the sandbox"
+grep -q "ENOENT" "$out" && fail "guard tried to read a deleted file"
+grep -q "$ROOT" "$tmp/armed.log" && fail "agent log contains the primary checkout path"
+# The child HOME must not be this developer's home directory.
+while IFS= read -r line; do
+  [[ "$line" == HOME:* ]] || continue
+  home="${line#HOME:}"
+  [[ "$home" != "$HOME" ]] || fail "child HOME is the parent HOME"
+  [[ -n "$home" ]] || fail "child HOME is empty"
+done <"$tmp/armed.log"
+echo "  ok"
+
+echo "case: run-guard-demo refuses an existing fixture path"
+if [[ -e "$ROOT/$PAGE" ]]; then
+  echo "  skipped: ${PAGE} already exists and was not touched"
+else
+  if [[ ! -d "$page_dir" ]]; then
+    created_page_dir=1
+    mkdir -p "$page_dir"
+  fi
+  : >"$ROOT/$PAGE"
+  created_page=1
+  set +e
+  bash "$ROOT/demo/run-guard-demo.sh" >"$tmp/refuse.out" 2>&1
+  refuse_code=$?
+  set -e
+  rm -f "$ROOT/$PAGE"
+  created_page=0
+  if [[ "$created_page_dir" -eq 1 ]]; then
+    rmdir "$page_dir" 2>/dev/null || true
+    created_page_dir=0
+  fi
+  [[ "$refuse_code" -eq 2 ]] || fail "run-guard-demo exit $refuse_code, expected 2"
+  grep -q "Refusing to run" "$tmp/refuse.out" || fail "run-guard-demo did not refuse"
+grep -q "demo left fixture files" "$tmp/refuse.out" && fail "refuse path reported a cleanup failure"
+  [[ ! -e "$ROOT/$PAGE" ]] || fail "fixture path left behind"
+  echo "  ok"
+fi
+
+inode_of() {
+  stat -c %i "$1" 2>/dev/null || stat -f %i "$1"
+}
+
+echo "case: clones do not share object inodes"
+out="$(run_case clones DEMO_KEEP_WORKTREES=1)"
+[[ "$(cat "$tmp/clones.code")" -eq 0 ]] || fail "clone case exit $(cat "$tmp/clones.code")"
+with_clone="$(sed -n 's/^  with setup:[[:space:]]*//p' "$out" | head -1)"
+[[ -d "$with_clone" ]] || fail "kept checkout missing"
+declare -A primary_inodes=()
+while IFS= read -r object; do
+  primary_inodes["$(inode_of "$object")"]=1
+done < <(find "$ROOT/.git/objects" -type f)
+compared=0
+while IFS= read -r object; do
+  id="$(inode_of "$object")"
+  [[ -z "${primary_inodes[$id]:-}" ]] || fail "clone shares an object inode: $object"
+  compared=1
+done < <(find "$with_clone/.git/objects" -type f)
+[[ "$compared" -eq 1 ]] || fail "clone has no git objects"
+[[ ! -s "$with_clone/.git/objects/info/alternates" ]] || fail "clone lists an object alternate"
+rm -rf "$(dirname "$with_clone")"
+echo "  ok"
+
+echo "case: object-check failure still deletes the temp directory"
+packs=()
+for pack in "$ROOT/.git/objects/pack/"*.pack; do
+  [[ -f "$pack" ]] || continue
+  packs+=("$pack")
+done
+out="$(run_case objfail DEMO_OBJECT_CHECK_FAIL=1)"
+[[ "$(cat "$tmp/objfail.code")" -eq 1 ]] || fail "object-check exit $(cat "$tmp/objfail.code"), expected 1"
+checkout_root="$(sed -n 's/^checkout-root: //p' "$out" | head -1)"
+[[ -n "$checkout_root" ]] || fail "checkout-root was not printed"
+[[ ! -d "$checkout_root" ]] || fail "temp directory was left behind: $checkout_root"
+for pack in "${packs[@]}"; do
+  [[ -f "$pack" ]] || fail "primary pack was removed: $pack"
+done
+echo "  ok"
+
+echo "case: guard fallback does not change the script directory"
+cwd_log="$tmp/cwd.txt"
+mkdir -p "$tmp/bin"
+ln -s "$(command -v node)" "$tmp/bin/node"
+ln -s "$(command -v git)" "$tmp/bin/git"
+set +e
+env -i \
+  PATH="$tmp/bin:/usr/bin:/bin" \
+  HOME="$HOME" \
+  TMPDIR="${TMPDIR:-/tmp}" \
+  LANG="${LANG:-C.UTF-8}" \
+  DEMO_CWD_LOG="$cwd_log" \
+  bash "$ROOT/demo/run-guard-demo.sh" >"$tmp/cwd.out" 2>&1
+cwd_code=$?
+set -e
+[[ "$cwd_code" -eq 0 ]] || fail "fallback demo exit $cwd_code — see $tmp/cwd.out"
+PATH="$tmp/bin:/usr/bin:/bin" command -v pnpm >/dev/null && fail "restricted PATH still contains pnpm"
+recorded_cwd="$(cat "$cwd_log")"
+[[ "$recorded_cwd" == "$ROOT" ]] || fail "script cwd changed to $recorded_cwd"
+echo "  ok"
+
+echo "with-vs-without checks passed"

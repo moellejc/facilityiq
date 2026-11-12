@@ -76,6 +76,8 @@ git apply -R demo/bad-change.patch
 
 The patch is expected to fail on Pages Router APIs, sync `params`, `.toFixed(`, Drizzle imports, and a client component that imports a service.
 
+`bash demo/run-guard-demo.sh` does that check on a throwaway worktree of `origin/main`, then applies `demo/fixed-change.patch` to the same files and expects `pnpm guard` to exit 0. It deletes the worktree before it exits. Do not commit the patched `src` files. The pass/fail transcript is in `demo/README.md`. `bash demo/with-vs-without.sh` compares one route-add prompt with and without skills, guards, and `AGENTS.md`. A key in the environment does not start the agent. `DEMO_RUN_AGENT=1` does, with `--sandbox enabled`, a scrubbed environment, and the fail-closed shell and read hooks restored first. The stop hook stays off the stripped checkout. The live agent is not part of CI.
+
 ## Drift watcher
 
 The Cursor Automation spec is `automations/nextjs-drift-watcher.md`. Joe creates it in the Cursor UI. It only opens pull requests. It never merges and never pushes to `main`. Those pull requests target `main` until `develop` exists.
@@ -104,6 +106,7 @@ Three sources disagree, so this is not a `deprecated[]` rule. The guard-rule dec
 - The monolithic **FacilityIQ Standards** automation is split into five specs under `automations/facilityiq-standards*.md` (hub, Coding Conventions, Unit Test Standards, CI Process, SDLC). Index: [`automations/facilityiq-standards.md`](../automations/facilityiq-standards.md). They are not live until Joe creates them and disables the old combined automation.
 - `scripts/cursor-api/launch-agent.mjs` is UNTESTED against a live `CURSOR_API_KEY`. Its local tests never call `api.cursor.com`.
 - The shell hook denies `gh pr merge` and force-push. It does not pattern-match a plain `git push` of `main`. Agents still must not push to `main`. That push is a process rule, not a hook match.
+- Cursor Automations are not created by this repository. `demo/with-vs-without.sh` can launch the local Cursor CLI only when `DEMO_RUN_AGENT=1` and a Cursor API key are both set. That live run is not part of CI. Otherwise the script labels it "not verified". It does not call the Cloud Agents API.
 - The drift watcher spec is committed. The Cursor Automation itself is not created in this repository. Joe creates it in the Cursor UI. No Cloud Agents API launcher is added here.
 
 ## GitFlow deviation
