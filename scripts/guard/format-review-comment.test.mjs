@@ -107,11 +107,10 @@ test("maps a guard error to its rule id and skill doc, and does not invent other
   );
   assert.match(comment, /Coding Conventions §14–§16; GitFlow §6/);
   assert.match(comment, /Staff Eng review requested: @moellejc/);
-  assert.match(
-    comment,
-    /\| Guard \| `node scripts\/guard\/pre-pr\.mjs` \| fail — 1 error\(s\), 0 warning\(s\) \|/,
-  );
-  assert.match(comment, /\| Lint \| `pnpm lint` \| not verified \|/);
+  assert.match(comment, /\| Guard \| `node scripts\/guard\/pre-pr\.mjs` \|/);
+  assert.match(comment, /Result for Guard:\n\n```\nfail — 1 error\(s\), 0 warning\(s\)\n```/);
+  assert.match(comment, /\| Lint \| `pnpm lint` \|/);
+  assert.match(comment, /Result for Lint:\n\n```\nnot verified\n```/);
   assert.doesNotMatch(comment, /\| Extra \| `pnpm guard` \|/);
   assert.match(comment, /does not approve, merge, or close/);
   assert.equal(comment.split(COMMENT_MARKER).length - 1, 1);
@@ -124,10 +123,8 @@ test("a clean buildReport stays ready for human review and still requests Staff 
   const comment = formatReviewComment({ report, ref: SHA, codeowners: owners });
   assert.match(comment, /\*\*Verdict: Ready for human review\*\*/);
   assert.match(comment, /No findings\./);
-  assert.match(
-    comment,
-    /\| Guard \| `node scripts\/guard\/pre-pr\.mjs` \| pass — 0 error\(s\), 0 warning\(s\) \|/,
-  );
+  assert.match(comment, /\| Guard \| `node scripts\/guard\/pre-pr\.mjs` \|/);
+  assert.match(comment, /Result for Guard:\n\n```\npass — 0 error\(s\), 0 warning\(s\)\n```/);
   assert.match(comment, /pull request body/);
   assert.match(comment, /code review checklist/);
   assert.match(comment, /### Pull request body\n\nnot verified/);
@@ -154,7 +151,8 @@ test("warnings do not request changes, and a missing guard report is not verifie
 
   const missing = formatReviewComment({ report: "", codeowners: owners });
   assert.match(missing, /\*\*Verdict: not verified\*\*/);
-  assert.match(missing, /\| Guard \| `node scripts\/guard\/pre-pr\.mjs` \| not verified \|/);
+  assert.match(missing, /\| Guard \| `node scripts\/guard\/pre-pr\.mjs` \|/);
+  assert.match(missing, /Result for Guard:\n\n```\nnot verified\n```/);
   assert.match(missing, /### Findings\n\nnot verified/);
 });
 
@@ -244,8 +242,10 @@ test("a complete body with a stated demo reason is not a finding", () => {
     codeowners: owners,
   });
   assert.match(comment, /\*\*Verdict: Ready for human review\*\*/);
-  assert.match(comment, /\| Lint \| `pnpm lint` \| pass — 0 problems \|/);
-  assert.match(comment, /\| Format \| `pnpm format:check` \| not verified \|/);
+  assert.match(comment, /\| Lint \| `pnpm lint` \|/);
+  assert.match(comment, /Result for Lint:\n\n```\npass — 0 problems\n```/);
+  assert.match(comment, /\| Format \| `pnpm format:check` \|/);
+  assert.match(comment, /Result for Format:\n\n```\nnot verified\n```/);
   assert.match(comment, /No blocking checklist findings\./);
   assert.doesNotMatch(comment, /Unverified in this run:.*code review checklist/);
 });
@@ -261,7 +261,8 @@ test("a checked body box does not count as a test that ran", () => {
     prBody: body,
     codeowners: owners,
   });
-  assert.match(comment, /\| Lint \| `pnpm lint` \| not verified \|/);
+  assert.match(comment, /\| Lint \| `pnpm lint` \|/);
+  assert.match(comment, /Result for Lint:\n\n```\nnot verified\n```/);
 });
 
 test("BLOCKING checklist lines request changes", () => {
@@ -305,12 +306,11 @@ test("omitting pnpm build leaves that row not verified", () => {
     checks,
     codeowners: owners,
   });
-  assert.match(comment, /\| Build \| `pnpm build` \| not verified \|/);
+  assert.match(comment, /\| Build \| `pnpm build` \|/);
+  assert.match(comment, /Result for Build:\n\n```\nnot verified\n```/);
   assert.match(comment, /Unverified in this run:.*pnpm build/);
-  assert.match(
-    comment,
-    /\| Guard \| `node scripts\/guard\/pre-pr\.mjs` \| pass — 0 error\(s\), 0 warning\(s\) \|/,
-  );
+  assert.match(comment, /\| Guard \| `node scripts\/guard\/pre-pr\.mjs` \|/);
+  assert.match(comment, /Result for Guard:\n\n```\npass — 0 error\(s\), 0 warning\(s\)\n```/);
 });
 
 test("an unusable checks file does not mark rows passed", () => {
@@ -326,12 +326,15 @@ test("an unusable checks file does not mark rows passed", () => {
       { cwd: ROOT, input: report, encoding: "utf8" },
     );
     assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /\| Guard \| `node scripts\/guard\/pre-pr\.mjs` \|/);
     assert.match(
       result.stdout,
-      /\| Guard \| `node scripts\/guard\/pre-pr\.mjs` \| pass — 0 error\(s\), 0 warning\(s\) \|/,
+      /Result for Guard:\n\n```\npass — 0 error\(s\), 0 warning\(s\)\n```/,
     );
-    assert.match(result.stdout, /\| Lint \| `pnpm lint` \| not verified \|/);
-    assert.match(result.stdout, /\| Build \| `pnpm build` \| not verified \|/);
+    assert.match(result.stdout, /\| Lint \| `pnpm lint` \|/);
+    assert.match(result.stdout, /Result for Lint:\n\n```\nnot verified\n```/);
+    assert.match(result.stdout, /\| Build \| `pnpm build` \|/);
+    assert.match(result.stdout, /Result for Build:\n\n```\nnot verified\n```/);
     assert.match(result.stdout, /Unverified in this run:.*checks file/);
   }
 });
@@ -349,7 +352,8 @@ test("cli prints one comment from a report on stdin", () => {
   assert.match(result.stdout, /<!-- facilityiq-pr-guardrail-review -->/);
   assert.match(result.stdout, /Staff Eng review requested: not verified/);
   assert.doesNotMatch(result.stdout, /@moellejc/);
-  assert.match(result.stdout, /\| Typecheck \| `pnpm typecheck` \| pass \|/);
+  assert.match(result.stdout, /\| Typecheck \| `pnpm typecheck` \|/);
+  assert.match(result.stdout, /Result for Typecheck:\n\n```\npass\n```/);
   assert.match(result.stdout, /\*\*Verdict: Changes requested\*\*/);
 });
 
@@ -369,13 +373,39 @@ test("a markdown link and a mention in a finding stay inside a fence", () => {
     ref: SHA,
     codeowners: owners,
     reviewNotes: "NOTE: see [phish](https://evil.example/n) @victim\n",
-    checks: { "echo ](https://evil.example/c) @victim": "pass" },
+    checks: {
+      "pnpm lint": "pass — see [details](https://evil.example) @someone",
+      "echo ](https://evil.example/c) @victim": "pass",
+    },
   });
   const outside = textOutsideFences(comment);
   assert.match(comment, /\]\(https:\/\/evil\.example\/p\)/);
   assert.match(comment, /@victim/);
   assert.doesNotMatch(outside, /evil\.example/);
   assert.doesNotMatch(outside, /@victim/);
+  assert.doesNotMatch(outside, /@someone/);
+});
+
+test("a demo paragraph with no link and no stated reason is pr-body-demo", () => {
+  const body = completeBody().replace(
+    "Not possible because this change has no UI.",
+    "We will record this later.",
+  );
+  const findings = pullRequestBodyFindings(body);
+  assert.equal(findings.problems.length, 1);
+  assert.equal(findings.problems[0].rule, "pr-body-demo");
+  assert.equal(
+    findings.problems[0].message,
+    "Demo video section has no recording link and no stated reason.",
+  );
+  const comment = formatReviewComment({
+    report: reportFor([]),
+    ref: SHA,
+    prBody: body,
+    codeowners: owners,
+  });
+  assert.match(comment, /\*\*Verdict: Changes requested\*\*/);
+  assert.match(comment, /`pr-body-demo`/);
 });
 
 test("a path outside the temp directory is refused", () => {

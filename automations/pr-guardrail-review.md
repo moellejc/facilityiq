@@ -54,7 +54,7 @@ The comment is the stdout of `scripts/guard/format-review-comment.mjs`. Shape:
 - A sentence that this comment does not approve, merge, or close.
 - `Unverified in this run: ...` or `Unverified in this run: none.`
 - Findings table: level, rule id, location, and the skill or template link. The message and the standard text are in a fenced block after the table, so an import specifier cannot become a Markdown link or a GitHub mention. Pull request body problems use rule ids `pr-body-section` and `pr-body-demo` and link to `.github/pull_request_template.md`.
-- Tests table, in CI order through build: format, lint, typecheck, unit, migrate, integration, `pnpm build`, then Playwright. The guard row is taken from the report (`pass` / `fail` / `not verified`). The script ignores a checks-file entry that tries to mark `node scripts/guard/pre-pr.mjs` or `pnpm guard` as passed. Other rows, including `pnpm build`, start as `not verified` and change only when this run recorded that command. A checks file that is missing, not JSON, or not an object leaves those rows `not verified` and adds `checks file` to the unverified list.
+- Tests table, in CI order through build: format, lint, typecheck, unit, migrate, integration, `pnpm build`, then Playwright. The table names the check and the command. Each result is a fenced block (`Result for <Check>:`), including `not verified`, so a checks-file value cannot become a Markdown link or a GitHub mention. The guard result is taken from the report (`pass` / `fail` / `not verified`). The script ignores a checks-file entry that tries to mark `node scripts/guard/pre-pr.mjs` or `pnpm guard` as passed. Other results, including `pnpm build`, start as `not verified` and change only when this run recorded that command. A checks file that is missing, not JSON, or not an object leaves those results `not verified` and adds `checks file` to the unverified list.
 - Pull request body: `not verified`, or the missing sections, or a line that the required sections and demo reason are present.
 - Code review checklist: `not verified`, or the notes file. A line that starts with `BLOCKING:` forces Changes requested.
 - A `<details>` block with the raw `pre-pr.mjs` stdout.
@@ -79,20 +79,20 @@ Staff Eng review requested: @moellejc (`.github/CODEOWNERS`, pattern `*`).
 
 ### Tests actually run
 
-| Check       | Command                         | Result                          |
-| ----------- | ------------------------------- | ------------------------------- |
-| Guard       | `node scripts/guard/pre-pr.mjs` | fail — 1 error(s), 0 warning(s) |
-| Format      | `pnpm format:check`             | not verified                    |
-| Lint        | `pnpm lint`                     | pass — 0 problems               |
-| Typecheck   | `pnpm typecheck`                | not verified                    |
-| Unit        | `pnpm test:unit`                | not verified                    |
-| Migrate     | `pnpm db:migrate`               | not verified                    |
-| Integration | `pnpm test:integration`         | not verified                    |
-| Build       | `pnpm build`                    | not verified                    |
-| E2E         | `pnpm exec playwright test`     | not verified                    |
+| Check       | Command                         |
+| ----------- | ------------------------------- |
+| Guard       | `node scripts/guard/pre-pr.mjs` |
+| Format      | `pnpm format:check`             |
+| Lint        | `pnpm lint`                     |
+| Typecheck   | `pnpm typecheck`                |
+| Unit        | `pnpm test:unit`                |
+| Migrate     | `pnpm db:migrate`               |
+| Integration | `pnpm test:integration`         |
+| Build       | `pnpm build`                    |
+| E2E         | `pnpm exec playwright test`     |
 ```
 
-The live comment also includes the unverified list, the raw report, and the "does not approve, merge, or close" sentence. The script is normative if this example and the script ever differ.
+The live comment fences each result (`Result for Guard:`, and so on), plus the unverified list, the raw report, and the "does not approve, merge, or close" sentence. The script is normative if this example and the script ever differ.
 
 ## Prompt
 

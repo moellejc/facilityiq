@@ -153,10 +153,6 @@ function skillDoc(row, ref) {
   return blobLink(row.skill, path, ref);
 }
 
-function escapeCell(value) {
-  return String(value).replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
-}
-
 function safeInline(value) {
   return String(value).replace(/[`\r\n]/g, " ");
 }
@@ -280,22 +276,23 @@ function findingsMarkdown(guard, body, ref) {
 }
 
 function testsTable(guard, checks, checksInvalid) {
-  const lines = ["| Check | Command | Result |", "| --- | --- | --- |"];
+  const lines = ["| Check | Command |", "| --- | --- |"];
+  const results = [];
   for (const item of REQUIRED_CHECKS) {
     let result = "not verified";
     if (item.check === "Guard") result = guardResult(guard);
     else if (!checksInvalid) result = cleanResult(checks?.[item.command]);
-    lines.push(`| ${item.check} | \`${item.command}\` | ${escapeCell(result)} |`);
+    lines.push(`| ${item.check} | \`${item.command}\` |`);
+    results.push(`Result for ${item.check}:\n\n${fence(result)}`);
   }
-  const extras = [];
   if (!checksInvalid && checks && typeof checks === "object") {
     for (const [command, value] of Object.entries(checks)) {
       if (REQUIRED_CHECKS.some((item) => item.command === command)) continue;
       if (command === "pnpm guard") continue;
-      extras.push(`Extra check (literal):\n\n${fence(`${command}\n${cleanResult(value)}`)}`);
+      results.push(`Extra check (literal):\n\n${fence(`${command}\n${cleanResult(value)}`)}`);
     }
   }
-  if (extras.length) lines.push("", ...extras);
+  lines.push("", ...results);
   return lines.join("\n");
 }
 
