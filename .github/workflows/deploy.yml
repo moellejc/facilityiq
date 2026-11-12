@@ -46,8 +46,7 @@ jobs:
 
       # v0.28.0 depends on aquasecurity/setup-trivy@v0.2.1, a tag that no longer
       # exists, so the image job fails while resolving actions. v0.36.0 pins
-      # setup-trivy to 3fb12ec (tag v0.2.6), which still resolves. Scan stays
-      # non-blocking (exit-code 0).
+      # setup-trivy to commit 3fb12ec (v0.2.6).
       - name: Scan image
         uses: aquasecurity/trivy-action@v0.36.0
         with:
