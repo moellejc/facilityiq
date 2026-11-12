@@ -413,7 +413,7 @@ export function formatReviewComment({
     );
   }
   parts.push(
-    "_Static checks only. This does not replace human review. Tenancy, RBAC, and deterministic KPI math stay advisory unless a finding says otherwise._",
+    "_Static checks only. This does not replace human review. The guard does not fail tenancy, server-side roles, or deterministic KPI and money math. Those remain hub ground rules for the human review. A BLOCKING line from the code-review checklist can still make the verdict Changes requested._",
     "",
   );
   return parts.join("\n");

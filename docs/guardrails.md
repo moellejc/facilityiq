@@ -86,11 +86,25 @@ On **Pull request opened** for `moellejc/facilityiq`, the agent runs the guard s
 
 `Draft opened` is a different Cursor trigger and is not selected. Fork pull requests are not supported.
 
+Worktree preview. This command reads the checkout `.cursor/guardrails.json`. It is not the automation path.
+
 ```bash
 tmp=$(mktemp -d)
 GUARD_BASE=origin/main node scripts/guard/pre-pr.mjs > "$tmp/report.md"
 git show origin/main:.github/CODEOWNERS > "$tmp/CODEOWNERS"
 node scripts/guard/format-review-comment.mjs --report "$tmp/report.md" --codeowners "$tmp/CODEOWNERS" --ref "$(git rev-parse HEAD)"
+```
+
+Automation path. Rules come from `origin/main`, not from the checkout. Until this branch is on `origin/main`, that archive does not contain `format-review-comment.mjs` or `GUARD_CONFIG` support.
+
+```bash
+tmp=$(mktemp -d)
+git archive origin/main scripts/guard | tar -x -C "$tmp"
+mkdir -p "$tmp/.cursor"
+git show origin/main:.cursor/guardrails.json > "$tmp/.cursor/guardrails.json"
+GUARD_ROOT="$PWD" GUARD_CONFIG="$tmp" GUARD_BASE=origin/main node "$tmp/scripts/guard/pre-pr.mjs" > "$tmp/report.md"
+git show origin/main:.github/CODEOWNERS > "$tmp/CODEOWNERS"
+node "$tmp/scripts/guard/format-review-comment.mjs" --report "$tmp/report.md" --codeowners "$tmp/CODEOWNERS" --ref "$(git rev-parse HEAD)"
 ```
 
 ## Drift watcher

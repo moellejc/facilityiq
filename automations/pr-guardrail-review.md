@@ -161,7 +161,9 @@ Fork pull requests are not supported. Draft opened is a different trigger. This 
 
 Weekly drift (`node scripts/guard/drift-check.mjs`) already runs from `.github/workflows/guardrails.yml` on a Monday schedule. Do not add a second drift automation here. An earlier draft described a Slack post for that drift check. It is not part of this spec.
 
-## Local preview
+## Worktree preview
+
+This reads the checkout `.cursor/guardrails.json`. It is not the automation path.
 
 ```bash
 tmp=$(mktemp -d)
@@ -170,4 +172,18 @@ git show origin/main:.github/CODEOWNERS > "$tmp/CODEOWNERS"
 node scripts/guard/format-review-comment.mjs --report "$tmp/report.md" --codeowners "$tmp/CODEOWNERS" --ref "$(git rev-parse HEAD)"
 ```
 
-Path arguments must sit under the temp directory. `pnpm guard:test` runs `scripts/guard/format-review-comment.test.mjs`. The automation itself runs `git archive origin/main scripts/guard`, not this worktree copy.
+## Automation path
+
+Rules come from `origin/main`. `GUARD_ROOT` is the checkout, so the diff is what gets scanned. `GUARD_CONFIG` is the temp tree that holds `origin/main`'s `.cursor/guardrails.json`.
+
+```bash
+tmp=$(mktemp -d)
+git archive origin/main scripts/guard | tar -x -C "$tmp"
+mkdir -p "$tmp/.cursor"
+git show origin/main:.cursor/guardrails.json > "$tmp/.cursor/guardrails.json"
+GUARD_ROOT="$PWD" GUARD_CONFIG="$tmp" GUARD_BASE=origin/main node "$tmp/scripts/guard/pre-pr.mjs" > "$tmp/report.md"
+git show origin/main:.github/CODEOWNERS > "$tmp/CODEOWNERS"
+node "$tmp/scripts/guard/format-review-comment.mjs" --report "$tmp/report.md" --codeowners "$tmp/CODEOWNERS" --ref "$(git rev-parse HEAD)"
+```
+
+Path arguments must sit under the temp directory. `pnpm guard:test` runs `scripts/guard/format-review-comment.test.mjs`. Until this branch is on `origin/main`, that archive does not contain this formatter. Do not fall back to the pull request copy.

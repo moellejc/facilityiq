@@ -146,6 +146,8 @@ test("maps a guard error to its rule id and skill doc, and does not invent other
   assert.match(comment, /Result for Lint:\n\n```\nnot verified\n```/);
   assert.doesNotMatch(comment, /\| Extra \| `pnpm guard` \|/);
   assert.match(comment, /does not approve, merge, or close/);
+  assert.match(comment, /remain hub ground rules for the human review/);
+  assert.doesNotMatch(comment, /stay advisory/);
   assert.equal(comment.split(COMMENT_MARKER).length - 1, 1);
   assert.doesNotMatch(comment, /\bApproved\b/);
 });
@@ -518,6 +520,14 @@ test("the automation spec runs guard scripts from origin/main and treats the dif
   assert.match(spec, /git archive origin\/main scripts\/guard/);
   assert.match(spec, /origin\/main:\.cursor\/guardrails\.json/);
   assert.match(spec, /GUARD_CONFIG=/);
+  assert.match(spec, /Worktree preview/);
+  assert.match(spec, /reads the checkout `\.cursor\/guardrails\.json`/);
+  const guide = readFileSync(new URL("../../docs/guardrails.md", import.meta.url), "utf8");
+  assert.match(
+    guide,
+    /Worktree preview\. This command reads the checkout `\.cursor\/guardrails\.json`/,
+  );
+  assert.match(guide, /GUARD_CONFIG="\$tmp"/);
 });
 
 test("GUARD_CONFIG is the rule file, not the checkout GUARD_ROOT points at", () => {
