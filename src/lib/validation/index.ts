@@ -18,6 +18,16 @@ export const paginationSchema = z.object({
   order: z.enum(["asc", "desc"]).default("asc"),
 });
 
+export const facilityQuickSearchQuerySchema = paginationSchema.extend({
+  q: z
+    .string()
+    .trim()
+    .min(2)
+    .max(40)
+    .regex(/^[A-Za-z0-9 ]+$/),
+  sort: z.enum(["name"]).default("name"),
+});
+
 export const uuidSchema = z.uuid();
 
 export const organizationUpdateSchema = z.object({

@@ -90,11 +90,12 @@ Conventions:
 
 App Router handlers under `src/app/api/...` as specified:
 
-`/api/organizations`, `/api/facilities`, `/api/facilities/[id]`, areas, assets, layout, metrics, financials, insights, `/api/scenarios`, `/api/scenarios/[id]`, `/api/scenarios/[id]/run`, `/api/uploads`, `/api/reports`.
+`/api/organizations`, `/api/facilities`, `/api/facilities/[id]`, areas, assets, layout, metrics, financials, insights, `/api/scenarios`, `/api/scenarios/[id]`, `/api/scenarios/[id]/run`, `/api/uploads`, `/api/reports`, `/api/quickSearch`.
 
 Admin mutations use the same services as the admin panel:
 
 - `POST /api/facilities`, `PATCH /api/facilities/[id]`, `DELETE /api/facilities/[id]` require `facilities:write`. `GET` stays `facilities:read`.
+- `GET /api/quickSearch` requires `facilities:read`. It searches the caller's active-organization facility list by name (`q`, 2–40 letters, numbers, or spaces). It uses session membership, not a query `organizationId`. Response is `{ data, page, limit, total }` with `limit` capped at 100, sort allowlisted to `name`, and a stable `id` tie-break. The handler is a read; it does not write `audit_logs`.
 - `GET /api/members` requires `members:read`. `POST /api/members`, `PATCH /api/members/[id]`, and `DELETE /api/members/[id]` require `members:write`.
 - `GET`, `POST /api/integrations` and `PATCH`, `DELETE /api/integrations/[id]` require `integrations:manage`.
 
