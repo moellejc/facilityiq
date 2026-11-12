@@ -37,6 +37,7 @@ Check only what ran on this branch, with the command and result.
 - [ ] Unit: pnpm test:unit — <result>
 - [ ] Migrate: pnpm db:migrate — <result>
 - [ ] Integration: pnpm test:integration — <result>
+- [ ] Build: pnpm build — <result>
 - [ ] E2E: <committed e2e command> — <result>
 
 Skipped / not run / failed (with reason): <...>

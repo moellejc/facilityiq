@@ -11,7 +11,7 @@ pnpm guard:baseline  # inventory existing src debt; always exits 0
 pnpm guard:drift     # installed Next/React/Drizzle still match the rules
 ```
 
-`GUARD_SCOPE` is `default` (product files), `finance-route` (the cost-by-category slice), or `infra` (workflows, guards, hooks). Leave it unset and an infra-only diff selects `infra`. A diff that also touches product code stays on `default`, so a product change cannot quietly edit CI.
+`GUARD_SCOPE` is `default` (product files), `finance-route` (the cost-by-category slice), or `infra` (workflows, guards, hooks, and `automations/`). Leave it unset and an infra-only diff selects `infra`. A diff that also touches product code stays on `default`, so a product change cannot quietly edit CI. `automations/**` is on the infra allow list so the review spec is in scope. That entry does not change the ratchet.
 
 `finance-route` allows the finance pages, `src/components/finance/**`, `src/components/dashboard/facility-analytics.tsx` (the view those pages render), and `src/components/layout/app-shell.tsx` (the breadcrumb label map, including a new finance slug). It does not allow `src/app/api/**`.
 
@@ -76,6 +76,37 @@ git apply -R demo/bad-change.patch
 
 The patch is expected to fail on Pages Router APIs, sync `params`, `.toFixed(`, Drizzle imports, and a client component that imports a service.
 
+## PR guardrail review
+
+Spec: [`automations/pr-guardrail-review.md`](../automations/pr-guardrail-review.md).
+
+Joe creates the automation in the Cursor UI (`cursor.com/automations` or `/automate`). **It is not live until he does.** This repository does not create or enable it. GitHub Actions does not post the comment.
+
+On **Pull request opened** for `moellejc/facilityiq`, the agent runs the guard scripts and `.cursor/guardrails.json` from `origin/main` (`git archive origin/main scripts/guard`, `GUARD_CONFIG` pointing at that copy) and posts one comment. Pull request copies of those scripts and of the rule file are not executed. `scripts/guard/format-review-comment.mjs` turns that stdout into the comment: verdict, each finding with its rule id and skill doc, and a tests-actually-run table. A result this run did not produce is `not verified`. Staff Eng is the `*` owner in `origin/main:.github/CODEOWNERS` (`@moellejc`). The agent does not approve, merge, or close.
+
+`Draft opened` is a different Cursor trigger and is not selected. Fork pull requests are not supported.
+
+Worktree preview. This command reads the checkout `.cursor/guardrails.json`. It is not the automation path.
+
+```bash
+tmp=$(mktemp -d)
+GUARD_BASE=origin/main node scripts/guard/pre-pr.mjs > "$tmp/report.md"
+git show origin/main:.github/CODEOWNERS > "$tmp/CODEOWNERS"
+node scripts/guard/format-review-comment.mjs --report "$tmp/report.md" --codeowners "$tmp/CODEOWNERS" --ref "$(git rev-parse HEAD)"
+```
+
+Automation path. Rules come from `origin/main`, not from the checkout. Until this branch is on `origin/main`, that archive does not contain `format-review-comment.mjs` or `GUARD_CONFIG` support.
+
+```bash
+tmp=$(mktemp -d)
+git archive origin/main scripts/guard | tar -x -C "$tmp"
+mkdir -p "$tmp/.cursor"
+git show origin/main:.cursor/guardrails.json > "$tmp/.cursor/guardrails.json"
+GUARD_ROOT="$PWD" GUARD_CONFIG="$tmp" GUARD_BASE=origin/main node "$tmp/scripts/guard/pre-pr.mjs" > "$tmp/report.md"
+git show origin/main:.github/CODEOWNERS > "$tmp/CODEOWNERS"
+node "$tmp/scripts/guard/format-review-comment.mjs" --report "$tmp/report.md" --codeowners "$tmp/CODEOWNERS" --ref "$(git rev-parse HEAD)"
+```
+
 ## Drift watcher
 
 The Cursor Automation spec is `automations/nextjs-drift-watcher.md`. Joe creates it in the Cursor UI. It only opens pull requests. It never merges and never pushes to `main`. Those pull requests target `main` until `develop` exists.
@@ -104,6 +135,7 @@ Three sources disagree, so this is not a `deprecated[]` rule. The guard-rule dec
 - The monolithic **FacilityIQ Standards** automation is split into five specs under `automations/facilityiq-standards*.md` (hub, Coding Conventions, Unit Test Standards, CI Process, SDLC). Index: [`automations/facilityiq-standards.md`](../automations/facilityiq-standards.md). They are not live until Joe creates them and disables the old combined automation.
 - `scripts/cursor-api/launch-agent.mjs` is UNTESTED against a live `CURSOR_API_KEY`. Its local tests never call `api.cursor.com`.
 - The shell hook denies `gh pr merge` and force-push. It does not pattern-match a plain `git push` of `main`. Agents still must not push to `main`. That push is a process rule, not a hook match.
+- The pull-request comment automation is the spec in `automations/pr-guardrail-review.md`. Joe creates it in the Cursor UI. It is not live until he does, and this workflow does not run it. Cursor does not run that trigger on fork pull requests. `Draft opened` is a separate trigger and is not selected.
 - The drift watcher spec is committed. The Cursor Automation itself is not created in this repository. Joe creates it in the Cursor UI. No Cloud Agents API launcher is added here.
 
 ## GitFlow deviation

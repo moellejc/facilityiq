@@ -44,3 +44,5 @@ Reviewers (human or agent) must understand the change. Generated code or green l
 - 🟢 **Optional** — suggestion.
 
 State what you verified (ran tests? read which files?) and what you didn't. When an actual PR is rejected, record the permalink, concern, preventive rule, and regression check so Notion §17 can be updated with real history.
+
+The opened-PR automation in `automations/pr-guardrail-review.md` asks the reviewer to apply this checklist inside one guardrail comment. That automation is not live until Joe creates it in the Cursor UI. It does not approve or merge.

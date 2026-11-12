@@ -7,8 +7,13 @@ import { pathToFileURL } from "node:url";
 
 export const ROOT = process.env.GUARD_ROOT || process.cwd();
 
+/** Rule file root. Defaults to ROOT. The PR review sets this to origin/main's tree so a diff cannot rewrite the rules it is judged by. */
+export function configRoot() {
+  return process.env.GUARD_CONFIG || ROOT;
+}
+
 export function loadConfig() {
-  return JSON.parse(readFileSync(join(ROOT, ".cursor/guardrails.json"), "utf8"));
+  return JSON.parse(readFileSync(join(configRoot(), ".cursor/guardrails.json"), "utf8"));
 }
 
 export function isCli(metaUrl) {
