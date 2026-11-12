@@ -90,12 +90,23 @@ export const read = (filePath) => readFileSync(join(ROOT, filePath), "utf8");
 export const isUseClient = (text) =>
   /^\s*(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/\s*)*['"]use client['"]/.test(text);
 
-export function finding(level, rule, file, line, message, skill, standard) {
-  return { level, rule, file, line, message, skill, standard };
+export function finding(level, rule, file, line, message, skill, standard, snippet = "") {
+  return { level, rule, file, line, message, skill, standard, snippet };
 }
 
 export function lineOf(text, index) {
   return text.slice(0, index).split("\n").length;
+}
+
+/** Normalized source line containing index. The ratchet fingerprints a hit as rule + this line. */
+export function sourceLine(text, index) {
+  const from = index > 0 ? index - 1 : 0;
+  const start = text.lastIndexOf("\n", from) + 1;
+  const end = text.indexOf("\n", index);
+  return text
+    .slice(start, end === -1 ? text.length : end)
+    .trim()
+    .replace(/\s+/g, " ");
 }
 
 export function renderFindings(title, findings) {
@@ -118,14 +129,24 @@ export function renderFindings(title, findings) {
   return `### ${mark}: ${title}\n| Level | Rule | Where | Why / fix |\n|---|---|---|---|\n${rows}\n`;
 }
 
-/** Keep findings whose (rule) count is higher than on the base branch. */
+/** Fingerprint is rule + source line, so a new line cannot hide behind an old one of the same rule. */
+function findingFingerprint(item) {
+  return `${item.rule}\0${item.snippet ?? ""}`;
+}
+
 export function ratchetFindings(current, baseFindings) {
+  const baseline = new Map();
+  for (const item of baseFindings) {
+    const key = findingFingerprint(item);
+    baseline.set(key, (baseline.get(key) ?? 0) + 1);
+  }
+  const seen = new Map();
   const keep = [];
-  const byRule = new Map();
-  for (const item of current) byRule.set(item.rule, [...(byRule.get(item.rule) ?? []), item]);
-  for (const [rule, list] of byRule) {
-    const had = baseFindings.filter((item) => item.rule === rule).length;
-    keep.push(...list.slice(had));
+  for (const item of current) {
+    const key = findingFingerprint(item);
+    const occurrence = (seen.get(key) ?? 0) + 1;
+    seen.set(key, occurrence);
+    if (occurrence > (baseline.get(key) ?? 0)) keep.push(item);
   }
   return keep;
 }

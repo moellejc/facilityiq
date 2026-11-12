@@ -39,3 +39,5 @@ Metric rollups, insight generation, large report/import work, later model proces
 ## Tests
 
 Integration-test each handler: correct org scoping, idempotent retry (run twice → one result), failure path records `failed` + `last_error`.
+
+A change under `worker/**` fails `pnpm guard` (`logic-without-tests`) unless a `tests/**/*.test.ts` file is in the same diff. That check only requires the file. It does not prove the three cases above.

@@ -20,7 +20,7 @@ export function buildReport(config = loadConfig(), files = changedFiles(config))
   const warns = flat.filter((item) => item.level === "warn").length;
   const intro = baseline
     ? "Baseline inventory of current `src` (ratchet off, test-strength skipped). This command exits 0. It does not fail CI."
-    : "New violations only. A finding that already exists on the base branch is not reported again.";
+    : "New violations only. Each finding is fingerprinted by rule and source line, with whitespace collapsed. A line that already exists for that rule on the base branch is not reported again. A different line fails even when the count stays the same, including a hit that replaces an earlier one or is inserted above the baseline hits.";
   const report = [
     "## FacilityIQ pre-PR guard",
     intro,

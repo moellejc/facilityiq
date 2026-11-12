@@ -13,6 +13,7 @@ import {
   read,
   renderFindings,
   resolveScope,
+  sourceLine,
 } from "./lib.mjs";
 
 const IMPORT_RE =
@@ -94,6 +95,7 @@ export function checkBoundaries(
               `${rule.message} (imports "${spec}")`,
               rule.skill,
               rule.standard,
+              sourceLine(text, match.index),
             ),
           );
         }

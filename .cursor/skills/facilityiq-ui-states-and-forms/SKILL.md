@@ -28,7 +28,7 @@ Examples in code: `KpiCard` (unavailable), `TimeSeriesChart` → `EmptyChart` (e
 
 ## Forms and mutations
 
-- Primary mutation boundary: existing authenticated route handlers (`src/app/api/**`). Server Actions are an optional adapter — see `facilityiq-nextjs-app-router`.
+- Primary mutation boundary: existing authenticated route handlers (`src/app/api/**`). Choose the adapter with `nextjs-server-action-vs-route-handler`, then implement it with `facilityiq-api-routes` or `facilityiq-nextjs-app-router`.
 - Browser validation is UX only. The server always Zod-validates and authorizes.
 - Show pending state, field-safe error messages, and success feedback (`sonner` toast or inline).
 - Catch network/event-handler errors explicitly — error boundaries don't catch async event failures.

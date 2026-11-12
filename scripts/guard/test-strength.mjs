@@ -18,6 +18,7 @@ const LOGIC = [
   "src/lib/**",
   "src/app/api/**/route.ts",
   "src/server/actions/**",
+  "worker/**",
 ];
 const WEAK =
   /expect\(\s*(true|false|1|0)\s*\)\.(toBe|toEqual)\(\s*\1\s*\)|\.toBeDefined\(\)|\.toBeTruthy\(\)|\.not\.toThrow\(\)/g;
