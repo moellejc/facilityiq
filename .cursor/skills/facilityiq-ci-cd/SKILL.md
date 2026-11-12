@@ -38,8 +38,8 @@ Runs on push to `main` and `workflow_dispatch`:
 Notes:
 
 - Both vulnerability scans are currently **non-blocking** (they report, never fail). Making them blocking is a standards decision.
-- Pin `aquasecurity/trivy-action` to a release whose `setup-trivy` dependency still resolves. `v0.28.0` depends on the deleted tag `aquasecurity/setup-trivy@v0.2.1` and fails the `image` job during action setup, before any step runs. Current pin: `v0.36.0` (depends on `setup-trivy` commit `3fb12ec`, tag `v0.2.6`).
-- `packages: write` is granted only on the `image` job, which is the job that can publish to GHCR. Workflow-level permissions stay `contents: read`.
+- `packages: write` is granted only on the `image` job. The workflow default is `contents: read`.
+- The image scan uses `aquasecurity/trivy-action@v0.36.0`. `v0.28.0` depends on `aquasecurity/setup-trivy@v0.2.1`, and that tag no longer exists, so the `image` job fails while resolving actions. `v0.36.0` pins `setup-trivy` to commit `3fb12ec` (`v0.2.6`). Do not move the scan back to a release that references a missing `setup-trivy` tag.
 - No automatic production deploy. Production needs an explicit target and approval configuration.
 
 ## Workflow rules
@@ -47,7 +47,9 @@ Notes:
 - Minimum permissions: `contents: read` by default; `packages: write` only on the publishing job.
 - No secrets committed or echoed. CI env values in `ci.yml` are throwaway test values — never reuse them elsewhere.
 - Pin action major versions; keep `concurrency` cancel-in-progress.
+- Pin `aquasecurity/trivy-action` to a release whose `action.yaml` pins `aquasecurity/setup-trivy` by commit SHA. `v0.28.0` references the deleted tag `setup-trivy@v0.2.1` and fails in "Set up job" before the scan runs. Current pin: commit `ed142fd0673e97e23eac54620cfb913e5ce36c25` (`v0.36.0`), which uses `setup-trivy@3fb12ec12f41e471780db15c232d5dd185dcb514` (`v0.2.6`). Keep `exit-code: "0"` so the scan stays non-blocking.
 - Take the pnpm version only from `package.json` `packageManager`. Do not also set `version` on `pnpm/action-setup`; that action fails when both are present.
+- `.github/workflows/guardrails.yml` is an extra pull-request and weekly workflow (guard self-tests, `pnpm guard` equivalent, a mocked deploy gate, drift). It does not replace the check order above. Notion CI Process does not mention it yet. The weekly mechanical check is the `drift` job (`node scripts/guard/drift-check.mjs` on cron `0 13 * * 1`). The Cursor Automation spec at `automations/nextjs-drift-watcher.md` opens pull requests from release notes. It does not add a second copy of that job. Joe creates the automation in the Cursor UI.
 - Keep CI env in sync with `.env.example` and `vitest.integration.config.ts` when adding variables.
 - Changing step order or removing a check needs a standards decision — update Notion CI Process and this skill.
 
