@@ -45,12 +45,40 @@ echo "Prompt file: demo/prompt.md"
 echo
 
 # Separate clones, not linked worktrees, so the agent cannot see this
-# checkout through git worktree list. The origin remote is removed so the
-# clone config does not keep this checkout's path.
+# checkout through git worktree list. --no-local copies objects instead of
+# hardlinking them to the primary repository. The origin remote is removed so
+# the clone config does not keep this checkout's path.
+same_inode() {
+  local a="$1" b="$2" ia ib
+  ia="$(stat -c %i "$a" 2>/dev/null || stat -f %i "$a")"
+  ib="$(stat -c %i "$b" 2>/dev/null || stat -f %i "$b")"
+  [[ "$ia" == "$ib" ]]
+}
+
 make_checkout() {
-  local dest="$1"
-  git clone --local --quiet "$ROOT" "$dest"
+  local dest="$1" f base src sample loose_dest loose_src
+  git clone --no-local --quiet "$ROOT" "$dest"
   git -C "$dest" remote remove origin
+  if [[ -s "$dest/.git/objects/info/alternates" ]]; then
+    echo "Refusing to continue: clone uses the primary checkout as an object alternate." >&2
+    exit 1
+  fi
+  for f in "$dest/.git/objects/pack/"*.pack "$dest/.git/objects/pack/"*.idx; do
+    [[ -f "$f" ]] || continue
+    base="$(basename "$f")"
+    src="$ROOT/.git/objects/pack/$base"
+    if [[ -f "$src" ]] && same_inode "$f" "$src"; then
+      echo "Refusing to continue: clone shares git object inodes with the primary checkout." >&2
+      exit 1
+    fi
+  done
+  sample="$(git -C "$dest" rev-parse HEAD)"
+  loose_dest="$dest/.git/objects/${sample:0:2}/${sample:2}"
+  loose_src="$ROOT/.git/objects/${sample:0:2}/${sample:2}"
+  if [[ -f "$loose_dest" && -f "$loose_src" ]] && same_inode "$loose_dest" "$loose_src"; then
+    echo "Refusing to continue: clone shares git object inodes with the primary checkout." >&2
+    exit 1
+  fi
 }
 
 make_checkout "$with_wt"
