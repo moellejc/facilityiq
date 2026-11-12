@@ -70,6 +70,26 @@ git apply -R demo/bad-change.patch
 
 The patch is expected to fail on Pages Router APIs, sync `params`, `.toFixed(`, Drizzle imports, and a client component that imports a service.
 
+## Drift watcher
+
+The Cursor Automation spec is `automations/nextjs-drift-watcher.md`. Joe creates it in the Cursor UI. It only opens pull requests. It never merges and never pushes to `main`. Those pull requests target `main` until `develop` exists.
+
+The weekly mechanical check is already the `drift` job in `.github/workflows/guardrails.yml` (cron `0 13 * * 1`, command `node scripts/guard/drift-check.mjs`). The automation does not add a second copy of that job.
+
+`demo/drift-watcher/` is a **SIMULATED** deprecation fixture (`unstable_cache` discouraged in favor of `"use cache"`). That claim is **not verified** and is not a real Next.js deprecation. The dry run does not edit `.cursor/guardrails.json`.
+
+```bash
+node scripts/drift-watcher/run-demo.mjs
+```
+
+That writes `demo/drift-watcher/SIMULATED.diff`, `SIMULATED-deprecated-entry.json`, and `SAMPLE-PR.md`. Apply and revert are documented in `demo/drift-watcher/README.md`. Do not commit an applied checkout.
+
+Three sources disagree, so this is not a `deprecated[]` rule. The guard-rule decision is **not verified**.
+
+- Installed `next@16.4.5` API page: This API has been replaced by `use cache` in Next.js 16 (`node_modules/next/dist/docs/01-app/03-api-reference/04-functions/unstable_cache.md`).
+- Installed migration guide: existing `unstable_cache` caching keeps working and migrating it is optional (`node_modules/next/dist/docs/01-app/02-guides/migrating-to-cache-components.md`).
+- Previous-model guide, fetched 2026-11-11: still documents `unstable_cache` for non-`fetch` functions. https://nextjs.org/docs/app/guides/caching
+
 ## Not exercised in CI
 
 - Cursor does not run `.cursor/hooks.json` inside GitHub Actions. The self-tests pipe sample JSON at the hook scripts. That is not a live Cursor session.
@@ -77,6 +97,7 @@ The patch is expected to fail on Pages Router APIs, sync `params`, `.toFixed(`, 
 - Cursor Automations are specs under `automations/`. Joe creates them in the Cursor UI. Nothing in this repo proves one is live. Slack posting from an automation is not verified.
 - `scripts/cursor-api/launch-agent.mjs` is UNTESTED against a live `CURSOR_API_KEY`. Its local tests never call `api.cursor.com`.
 - The shell hook denies `gh pr merge` and force-push. It does not pattern-match a plain `git push` of `main`. Agents still must not push to `main`. That push is a process rule, not a hook match.
+- The drift watcher spec is committed. The Cursor Automation itself is not created in this repository. Joe creates it in the Cursor UI. No Cloud Agents API launcher is added here.
 
 ## GitFlow deviation
 

@@ -46,3 +46,6 @@ next-env.d.ts
 # local guard output
 .guard-report.md
 guard-report.md
+
+# SIMULATED drift-watcher apply backup
+demo/drift-watcher/.apply-manifest.json

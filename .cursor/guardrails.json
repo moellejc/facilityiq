@@ -61,6 +61,7 @@
         "AGENTS.md",
         "README.md",
         "demo/**",
+        "automations/**",
         ".gitignore",
         ".prettierignore"
       ]
