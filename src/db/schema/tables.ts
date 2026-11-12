@@ -150,12 +150,38 @@ export const facilities = pgTable(
     facilityType: facilityTypeEnum("facility_type").notNull().default("warehouse"),
     squareFootage: numeric("square_footage", { precision: 12, scale: 2 }),
     timezone: text("timezone").notNull().default("America/Los_Angeles"),
+    addressStreet: text("address_street"),
+    addressCity: text("address_city"),
+    addressRegion: text("address_region"),
+    addressPostalCode: text("address_postal_code"),
+    addressCountry: text("address_country"),
     metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
     ...timestamps,
   },
   (table) => [
     index("facilities_organization_id_idx").on(table.organizationId),
     uniqueIndex("facilities_organization_name_unique").on(table.organizationId, table.name),
+    check(
+      "facilities_address_complete",
+      sql`(
+        ${table.addressStreet} is null
+        and ${table.addressCity} is null
+        and ${table.addressRegion} is null
+        and ${table.addressPostalCode} is null
+        and ${table.addressCountry} is null
+      ) or (
+        ${table.addressStreet} is not null
+        and length(btrim(${table.addressStreet})) > 0
+        and ${table.addressCity} is not null
+        and length(btrim(${table.addressCity})) > 0
+        and ${table.addressRegion} is not null
+        and length(btrim(${table.addressRegion})) > 0
+        and ${table.addressPostalCode} is not null
+        and length(btrim(${table.addressPostalCode})) > 0
+        and ${table.addressCountry} is not null
+        and length(btrim(${table.addressCountry})) > 0
+      )`,
+    ),
   ],
 );
 

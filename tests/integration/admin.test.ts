@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { ZodError } from "zod";
 
 import { getDb } from "@/db";
 import {
@@ -16,6 +17,7 @@ import { AppError } from "@/lib/errors";
 import type { Role } from "@/lib/permissions";
 import {
   createFacilityRecord,
+  readFacilityRecord,
   removeFacilityRecord,
   updateFacilityRecord,
 } from "@/server/services/facility-service";
@@ -200,6 +202,221 @@ describe("admin panel services", () => {
     expect(audit?.action).toBe("facility.delete");
 
     await removeFacilityRecord(context(adminB, orgB, "org_admin"), sameNameOtherOrg.data.id);
+  });
+
+  it("persists a trimmed street address when an admin creates a facility", async () => {
+    const admin = context(adminA, orgA, "org_admin");
+    const created = await createFacilityRecord(admin, {
+      name: `Created address ${suffix}`,
+      facilityType: "warehouse",
+      address: {
+        street: "  100 Dock Street ",
+        city: " Tacoma ",
+        region: " WA ",
+        postalCode: " 98421 ",
+        country: " United States ",
+      },
+    });
+    expect(created.data.address).toEqual({
+      street: "100 Dock Street",
+      city: "Tacoma",
+      region: "WA",
+      postalCode: "98421",
+      country: "United States",
+    });
+    const [row] = await getDb()
+      .select({
+        addressStreet: facilities.addressStreet,
+        addressCity: facilities.addressCity,
+        addressRegion: facilities.addressRegion,
+        addressPostalCode: facilities.addressPostalCode,
+        addressCountry: facilities.addressCountry,
+      })
+      .from(facilities)
+      .where(eq(facilities.id, created.data.id));
+    expect(row).toEqual({
+      addressStreet: "100 Dock Street",
+      addressCity: "Tacoma",
+      addressRegion: "WA",
+      addressPostalCode: "98421",
+      addressCountry: "United States",
+    });
+    await removeFacilityRecord(admin, created.data.id);
+  });
+
+  it("returns a null street address when a facility is created without one", async () => {
+    const admin = context(adminA, orgA, "org_admin");
+    const created = await createFacilityRecord(admin, {
+      name: `No address ${suffix}`,
+      facilityType: "warehouse",
+    });
+    expect(created.data.address).toBeNull();
+    await removeFacilityRecord(admin, created.data.id);
+  });
+
+  it("denies a street address update to a viewer", async () => {
+    const admin = context(adminA, orgA, "org_admin");
+    const created = await createFacilityRecord(admin, {
+      name: `Viewer address ${suffix}`,
+      facilityType: "warehouse",
+    });
+    await expect(
+      updateFacilityRecord(context(viewerA, orgA, "viewer"), created.data.id, {
+        address: {
+          street: "4800 Harbor Avenue",
+          city: "Tacoma",
+          region: "WA",
+          postalCode: "98421",
+          country: "United States",
+        },
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN", status: 403 });
+    await removeFacilityRecord(admin, created.data.id);
+  });
+
+  it("denies a street address update to an operations manager", async () => {
+    const admin = context(adminA, orgA, "org_admin");
+    const created = await createFacilityRecord(admin, {
+      name: `Ops address ${suffix}`,
+      facilityType: "warehouse",
+    });
+    await expect(
+      updateFacilityRecord(context(opsA, orgA, "operations_manager"), created.data.id, {
+        address: {
+          street: "4800 Harbor Avenue",
+          city: "Tacoma",
+          region: "WA",
+          postalCode: "98421",
+          country: "United States",
+        },
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN", status: 403 });
+    await removeFacilityRecord(admin, created.data.id);
+  });
+
+  it("rejects a partial street address without writing columns", async () => {
+    const admin = context(adminA, orgA, "org_admin");
+    const created = await createFacilityRecord(admin, {
+      name: `Partial address ${suffix}`,
+      facilityType: "warehouse",
+    });
+    await expect(
+      updateFacilityRecord(admin, created.data.id, { address: { street: "4800 Harbor Avenue" } }),
+    ).rejects.toBeInstanceOf(ZodError);
+    const [row] = await getDb()
+      .select({ addressStreet: facilities.addressStreet })
+      .from(facilities)
+      .where(eq(facilities.id, created.data.id));
+    expect(row?.addressStreet).toBeNull();
+    await removeFacilityRecord(admin, created.data.id);
+  });
+
+  it("trims and stores a street address on update", async () => {
+    const admin = context(adminA, orgA, "org_admin");
+    const created = await createFacilityRecord(admin, {
+      name: `Updated address ${suffix}`,
+      facilityType: "warehouse",
+    });
+    const saved = await updateFacilityRecord(admin, created.data.id, {
+      address: {
+        street: "  4800 Harbor Avenue ",
+        city: "Tacoma",
+        region: "WA",
+        postalCode: "98421",
+        country: "United States",
+      },
+    });
+    expect(saved.data.address).toEqual({
+      street: "4800 Harbor Avenue",
+      city: "Tacoma",
+      region: "WA",
+      postalCode: "98421",
+      country: "United States",
+    });
+    await removeFacilityRecord(admin, created.data.id);
+  });
+
+  it("keeps the street address when the facility is renamed", async () => {
+    const admin = context(adminA, orgA, "org_admin");
+    const created = await createFacilityRecord(admin, {
+      name: `Rename address ${suffix}`,
+      facilityType: "warehouse",
+      address: {
+        street: "4800 Harbor Avenue",
+        city: "Tacoma",
+        region: "WA",
+        postalCode: "98421",
+        country: "United States",
+      },
+    });
+    const renamed = await updateFacilityRecord(admin, created.data.id, {
+      name: `Rename address saved ${suffix}`,
+    });
+    expect(renamed.data.address).toEqual(created.data.address);
+    await removeFacilityRecord(admin, created.data.id);
+  });
+
+  it("lets a viewer read the street address", async () => {
+    const admin = context(adminA, orgA, "org_admin");
+    const created = await createFacilityRecord(admin, {
+      name: `Readable address ${suffix}`,
+      facilityType: "warehouse",
+      address: {
+        street: "4800 Harbor Avenue",
+        city: "Tacoma",
+        region: "WA",
+        postalCode: "98421",
+        country: "United States",
+      },
+    });
+    const visible = await readFacilityRecord(context(viewerA, orgA, "viewer"), created.data.id);
+    expect(visible.data.address).toEqual(created.data.address);
+    await removeFacilityRecord(admin, created.data.id);
+  });
+
+  it("returns 404 when an admin updates another organization's street address", async () => {
+    const admin = context(adminA, orgA, "org_admin");
+    await expect(
+      updateFacilityRecord(admin, facilityB, {
+        address: {
+          street: "9 Secret Road",
+          city: "Hidden",
+          region: "OR",
+          postalCode: "97000",
+          country: "United States",
+        },
+      }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND", status: 404 });
+    const [hidden] = await getDb()
+      .select({ addressStreet: facilities.addressStreet })
+      .from(facilities)
+      .where(eq(facilities.id, facilityB));
+    expect(hidden?.addressStreet).toBeNull();
+  });
+
+  it("returns 404 when an admin reads another organization's facility", async () => {
+    await expect(
+      readFacilityRecord(context(adminA, orgA, "org_admin"), facilityB),
+    ).rejects.toMatchObject({ code: "NOT_FOUND", status: 404 });
+  });
+
+  it("clears a street address without changing the facility name", async () => {
+    const admin = context(adminA, orgA, "org_admin");
+    const created = await createFacilityRecord(admin, {
+      name: `Clear address ${suffix}`,
+      facilityType: "warehouse",
+      address: {
+        street: "4800 Harbor Avenue",
+        city: "Tacoma",
+        region: "WA",
+        postalCode: "98421",
+        country: "United States",
+      },
+    });
+    const cleared = await updateFacilityRecord(admin, created.data.id, { address: null });
+    expect(cleared.data.address).toBeNull();
+    expect(cleared.data.name).toBe(`Clear address ${suffix}`);
+    await removeFacilityRecord(admin, created.data.id);
   });
 
   it("adds an existing account, blocks duplicates and the last administrator", async () => {

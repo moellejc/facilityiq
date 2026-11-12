@@ -4,19 +4,13 @@ import { cookies } from "next/headers";
 import { FACILITY_COOKIE, ORG_COOKIE } from "@/lib/auth/cookies";
 import { auth } from "@/lib/auth";
 import { AppError } from "@/lib/errors";
+import { toFacilitySummary, type FacilitySummary } from "@/lib/facilities";
 import type { Role } from "@/lib/permissions";
 
 import { listFacilities } from "../repositories/facilities";
 import { listMemberships } from "../repositories/membership";
 
-export type ShellFacility = {
-  id: string;
-  name: string;
-  location: string | null;
-  facilityType: string;
-  squareFootage: string | null;
-  timezone: string;
-};
+export type ShellFacility = FacilitySummary;
 
 export type ShellMembership = {
   memberId: string;
@@ -50,7 +44,9 @@ export const loadRequestContext = cache(async (): Promise<RequestContext | null>
   const requestedOrg = jar.get(ORG_COOKIE)?.value;
   const membership =
     memberships.find((item) => item.organizationId === requestedOrg) ?? memberships[0]!;
-  const facilities = await listFacilities(membership.organizationId, session.user.id);
+  const facilities = (await listFacilities(membership.organizationId, session.user.id)).map(
+    toFacilitySummary,
+  );
   const requestedFacility = jar.get(FACILITY_COOKIE)?.value;
   const facility =
     facilities.find((item) => item.id === requestedFacility) ?? facilities[0] ?? null;
