@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  attentionQuerySchema,
   facilityCreateSchema,
   facilityUpdateSchema,
   integrationCreateSchema,
@@ -67,5 +68,14 @@ describe("request schemas", () => {
     expect(memberAddSchema.parse({ email: "Person@Acme.Example", role: "viewer" }).email).toBe(
       "person@acme.example",
     );
+  });
+
+  it("accepts an attention filter and rejects other severities", () => {
+    expect(attentionQuerySchema.parse({ attention: "critical" })).toEqual({
+      attention: "critical",
+    });
+    expect(attentionQuerySchema.parse({})).toEqual({});
+    expect(attentionQuerySchema.safeParse({ attention: "info" }).success).toBe(false);
+    expect(attentionQuerySchema.safeParse({ attention: "all" }).success).toBe(false);
   });
 });
