@@ -1,19 +1,41 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Suspense } from "react";
+
 import { PageIntro } from "@/components/dashboard/coming-next";
+import {
+  AttentionPanelSkeleton,
+  FacilityAttention,
+} from "@/components/facilities/facility-attention";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { attentionFilterFromQuery } from "@/lib/attention";
 import { formatSquareFeet } from "@/lib/format";
 import { requireRequestContext } from "@/server/services/context";
 
 export const dynamic = "force-dynamic";
 
-export default async function FacilitiesPage() {
+export default async function FacilitiesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ attention?: string | string[] }>;
+}) {
   const context = await requireRequestContext();
+  const query = await searchParams;
+  const filter = attentionFilterFromQuery(query.attention);
 
   return (
     <div>
       <PageIntro
         title="Facilities"
-        description="Sites available in the active organization. The 3D twin, layout editor, and heatmaps are later phases."
+        description="Sites in the active organization, plus areas and assets with a stored warning or critical alert."
       />
+      <Suspense fallback={<AttentionPanelSkeleton />}>
+        <FacilityAttention
+          organizationId={context.organizationId}
+          userId={context.userId}
+          facilityId={context.facilityId}
+          role={context.role}
+          filter={filter}
+        />
+      </Suspense>
       {context.facilities.length === 0 ? (
         <Card>
           <CardHeader>

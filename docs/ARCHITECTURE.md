@@ -115,6 +115,8 @@ Professional enterprise shell:
 
 Primary nav as specified, in this order: Dashboard; Facilities (Overview, 3D Digital Twin, Areas, Assets, Layouts); Operations (Throughput, Utilization, Bottlenecks); Finance (Operating Costs, Cost per Order, Asset Costs); Scenarios; AI Insights; Reports; Settings.
 
+The facilities overview (`/facilities`) lists those sites and, for the active facility, a **Needs attention** panel. `src/lib/attention.ts` groups stored `asset_events` rows whose severity is `warning` or `critical` by asset (or by area when the event has no asset). Info events stay off the list. It is a presentation of those alerts, not a new KPI, and it does not show finance amounts. The read requires `operations:read` (every current role already has it) and is scoped to the authenticated organization. The page reads an optional `attention` search param of `warning` or `critical`; any other value lists every qualifying subject. That severity is applied in the query before the 100-alert window, and the count uses the same predicate.
+
 An **Admin** item is appended after Settings only when the signed-in membership has the organization-administrator permissions (`canAccessAdmin` in `src/lib/permissions`). It is not a new role. Other roles do not see it. The user menu item "Organization settings" opens `/admin` for those same administrators. Settings stays at `/settings` and shows only the signed-in person's profile. Organization name, members, facilities, and integration records are on `/admin`.
 
 Phase 1 builds the real shell and navigation. Pages other than sign-in, dashboard home, and settings may be routed shells that explain they will light up in later phases — do not fake KPI numbers.

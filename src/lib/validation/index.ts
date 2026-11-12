@@ -140,6 +140,10 @@ export const financialListSchema = paginationSchema.extend({
   order: z.enum(["asc", "desc"]).default("desc"),
 });
 
+export const attentionQuerySchema = z.object({
+  attention: z.enum(["warning", "critical"]).optional(),
+});
+
 export function parseSearchParams<T>(url: URL, schema: z.ZodType<T>) {
   const raw = Object.fromEntries(url.searchParams.entries());
   return schema.parse(raw);
