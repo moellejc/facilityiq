@@ -55,7 +55,7 @@ Then:
 - If Clean: one short sentence confirming no SDLC Best Practices findings in this diff.
 End with: “No changes were made. Human decision required before any remediation.”
 
-If a prior comment on this PR already contains <!-- facilityiq-standards:sdlc -->, update that comment instead of posting another. If update is not possible, do not post a second comment; say so in the run log.
+Prefer one visible assessment per PR for this automation. If a prior comment already contains <!-- facilityiq-standards:sdlc -->, update that comment in place when the Comment tool can edit. If in-place edit is not possible, post a new review of the current event range and open with: “Supersedes the previous FacilityIQ Standards: SDLC Best Practices comment on this PR.” Never skip posting on Pull request pushed because an older comment could not be edited.
 ```
 
 ## What it never does
