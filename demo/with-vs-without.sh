@@ -317,9 +317,20 @@ product_changes() {
   local line path
   git_in_clone "$wt" status --porcelain=v1 -uall | while IFS= read -r line; do
     [[ -n "$line" ]] || continue
+    xy="${line:0:2}"
     path="${line:3}"
     path="${path#\"}"
     path="${path%\"}"
+    # Renames are "old -> new". The guard can only read the destination.
+    if [[ "$xy" == R* || "$xy" == C* ]]; then
+      path="${path##* -> }"
+      path="${path#\"}"
+      path="${path%\"}"
+    fi
+    # A deletion has no file for readFileSync. Skip it.
+    if [[ "$xy" == *D* && "$xy" != R* && "$xy" != C* ]]; then
+      continue
+    fi
     case "$path" in
       AGENTS.md | .cursor/skills | .cursor/skills/* | .cursor/hooks | .cursor/hooks/* | .cursor/hooks.json | .cursor/guardrails.json | scripts/guard | scripts/guard/* | demo | demo/*)
         continue
@@ -327,6 +338,10 @@ product_changes() {
     esac
     if ! path_stays_in_checkout "$wt" "$path"; then
       echo "Skipping unsafe path: ${path}" >&2
+      continue
+    fi
+    if [[ ! -f "$wt/$path" ]]; then
+      echo "Skipping missing path: ${path}" >&2
       continue
     fi
     printf '%s\n' "$path"

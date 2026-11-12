@@ -73,6 +73,7 @@ done
     echo "WORKTREES:$(git -C "$workspace" worktree list)"
     mkdir -p "$workspace/src" "__OUTSIDE__"
     printf 'export const a = 1\n' >"$workspace/src/ok.ts"
+    rm -f "$workspace/README.md"
     printf 'export const b = 1\n' >"$workspace/src/comma,name.ts"
     ln -s "__OUTSIDE__/secret" "$workspace/src/linked.ts"
     rm -rf "$workspace/.cursor"
@@ -149,6 +150,7 @@ grep -q "Skipping unsafe path: src/linked.ts" "$out" || fail "symlink path was n
 grep -q "Refusing to write guardrails.json" "$out" || fail "symlink .cursor was followed"
 [[ ! -e "$tmp/outside/guardrails.json" ]] || fail "guardrails.json was written through a symlink"
 [[ ! -e "$tmp/outside/fsmonitor-ran" ]] || fail "clone core.fsmonitor ran outside the sandbox"
+grep -q "ENOENT" "$out" && fail "guard tried to read a deleted file"
 grep -q "$ROOT" "$tmp/armed.log" && fail "agent log contains the primary checkout path"
 # The child HOME must not be this developer's home directory.
 while IFS= read -r line; do
@@ -181,6 +183,7 @@ else
   fi
   [[ "$refuse_code" -eq 2 ]] || fail "run-guard-demo exit $refuse_code, expected 2"
   grep -q "Refusing to run" "$tmp/refuse.out" || fail "run-guard-demo did not refuse"
+grep -q "demo left fixture files" "$tmp/refuse.out" && fail "refuse path reported a cleanup failure"
   [[ ! -e "$ROOT/$PAGE" ]] || fail "fixture path left behind"
   echo "  ok"
 fi

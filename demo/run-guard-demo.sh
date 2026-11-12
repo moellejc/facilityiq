@@ -18,6 +18,7 @@ FIX_PATCH="$ROOT/demo/fixed-change.patch"
 bad_applied=0
 fix_applied=0
 demo_status=0
+preexisting=0
 worktrees=()
 guard_dir=""
 
@@ -40,7 +41,7 @@ cleanup() {
       rm -rf "$dir"
     done
   fi
-  if [[ -e "$PAGE" || -e "$CHART" ]]; then
+  if [[ "$preexisting" -eq 0 && ( -e "$PAGE" || -e "$CHART" ) ]]; then
     echo "ERROR: demo left fixture files in the primary checkout." >&2
     status=1
   fi
@@ -52,6 +53,7 @@ cleanup() {
 trap cleanup EXIT
 
 if [[ -e "$PAGE" || -e "$CHART" ]]; then
+  preexisting=1
   echo "Refusing to run: ${PAGE} or ${CHART} already exists in this checkout." >&2
   echo "This demo will not overwrite those paths." >&2
   demo_status=2
