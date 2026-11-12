@@ -47,6 +47,7 @@ Notes:
 - Minimum permissions: `contents: read` by default; `packages: write` only on the publishing job.
 - No secrets committed or echoed. CI env values in `ci.yml` are throwaway test values — never reuse them elsewhere.
 - Pin action major versions; keep `concurrency` cancel-in-progress.
+- Pin `aquasecurity/trivy-action` to a release whose `action.yaml` pins `aquasecurity/setup-trivy` by commit SHA. `v0.28.0` references the deleted tag `setup-trivy@v0.2.1` and fails in "Set up job" before the scan runs. Current pin: commit `ed142fd0673e97e23eac54620cfb913e5ce36c25` (`v0.36.0`), which uses `setup-trivy@3fb12ec12f41e471780db15c232d5dd185dcb514` (`v0.2.6`). Keep `exit-code: "0"` so the scan stays non-blocking.
 - Take the pnpm version only from `package.json` `packageManager`. Do not also set `version` on `pnpm/action-setup`; that action fails when both are present.
 - `.github/workflows/guardrails.yml` is an extra pull-request and weekly workflow (guard self-tests, `pnpm guard` equivalent, a mocked deploy gate, drift). It does not replace the check order above. Notion CI Process does not mention it yet. The weekly mechanical check is the `drift` job (`node scripts/guard/drift-check.mjs` on cron `0 13 * * 1`). The Cursor Automation spec at `automations/nextjs-drift-watcher.md` opens pull requests from release notes. It does not add a second copy of that job. Joe creates the automation in the Cursor UI.
 - Keep CI env in sync with `.env.example` and `vitest.integration.config.ts` when adding variables.
