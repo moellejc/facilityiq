@@ -1,0 +1,41 @@
+diff --git a/.cursor/guardrails.json b/.cursor/guardrails.json
+--- a/.cursor/guardrails.json
++++ b/.cursor/guardrails.json
+@@ -191,6 +191,14 @@
+       "message": "Format numbers with src/lib/format.ts or src/lib/analytics/display.ts. Missing values render as an em dash, never 0.",
+       "skill": "facilityiq-ui-design-system",
+       "standard": "Coding Conventions §9 and §11; Unit Test Standards §3; SDLC Best Practices §4"
++    },
++    {
++      "id": "simulated-unstable-cache",
++      "pattern": "\\bunstable_cache\\b",
++      "files": ["src/**"],
++      "message": "SIMULATED fixture, not a real Next.js deprecation (not verified). The fixture discourages unstable_cache in favor of \"use cache\". No codemod: this is not a real migration. The previous-model caching guide still documents unstable_cache for non-fetch functions. Source: https://nextjs.org/docs/app/guides/caching This API has been replaced by use cache in Next.js 16. Installed next@16.4.5 API reference recommends replacing unstable_cache with the use cache directive. Path: node_modules/next/dist/docs/01-app/03-api-reference/04-functions/unstable_cache.md. Installed next@16.4.5 migration guide says existing unstable_cache caching keeps working and migrating it is optional. Path: node_modules/next/dist/docs/01-app/02-guides/migrating-to-cache-components.md.",
++      "skill": "nextjs-caching-and-revalidation",
++      "standard": "SIMULATED fixture only. Not a Coding Conventions rule."
+     }
+   ]
+ }
+diff --git a/.cursor/skills/nextjs-caching-and-revalidation/SKILL.md b/.cursor/skills/nextjs-caching-and-revalidation/SKILL.md
+--- a/.cursor/skills/nextjs-caching-and-revalidation/SKILL.md
++++ b/.cursor/skills/nextjs-caching-and-revalidation/SKILL.md
+@@ -52,3 +52,19 @@
+ Related ids, explained in `nextjs-app-router-route`: `gssp` (do not reach for Pages Router data fetching to "turn off caching") and `sync-params`. `public-secret` still forbids `NEXT_PUBLIC_` secrets if a cache key is built from env.
+ 
+ `pnpm guard:drift` compares `verifiedAgainst.next` (`"16"`) to the installed major. A caching API change that breaks these signatures is an upgrade: `nextjs-upgrade-assistant`.
++
++<!-- SIMULATED drift-watcher proposal: not a real Next.js deprecation -->
++
++## SIMULATED drift-watcher proposal
++
++This section is a dry-run proposal from `demo/drift-watcher/`. It is **SIMULATED** and **not verified**. It is not a real Next.js deprecation, and it is not FacilityIQ guidance.
++
++The fixture claims `unstable_cache` is discouraged in favor of "use cache". That claim is **not verified**.
++
++Verified contrast: The previous-model caching guide still documents unstable_cache for non-fetch functions. Source: https://nextjs.org/docs/app/guides/caching (page fetched 2026-11-11).
++
++No codemod applies. Leave Cache Components off. Do not add `"use cache"` because of this fixture.
++
++This API has been replaced by use cache in Next.js 16. Installed next@16.4.5 API reference recommends replacing unstable_cache with the use cache directive. Path: node_modules/next/dist/docs/01-app/03-api-reference/04-functions/unstable_cache.md. Installed next@16.4.5 migration guide says existing unstable_cache caching keeps working and migrating it is optional. Path: node_modules/next/dist/docs/01-app/02-guides/migrating-to-cache-components.md. The installed API page and the migration guide disagree, and the public guide still documents the API. The watcher quotes all three and does not add a live `deprecated[]` entry for that disagreement. The fixture's guard-rule claim stays **not verified**.
++
++<!-- /SIMULATED drift-watcher proposal -->

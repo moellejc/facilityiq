@@ -5,7 +5,7 @@ description: FacilityIQ state ownership and caching rules — where state lives 
 
 # Client State and Caching (FacilityIQ)
 
-Source: Notion Coding Conventions §16.
+Source: Notion Coding Conventions §16. Next.js function signatures (`revalidatePath`, `revalidateTag`, `updateTag`, the two caching models) are in `nextjs-caching-and-revalidation`. This skill stays the owner of state and of the "authenticated data is uncached" policy.
 
 ## State ownership
 

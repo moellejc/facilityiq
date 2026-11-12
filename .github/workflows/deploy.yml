@@ -12,7 +12,6 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 concurrency:
   group: deploy-${{ github.ref }}
@@ -28,6 +27,9 @@ jobs:
     needs: checks
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
