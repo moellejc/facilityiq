@@ -19,7 +19,7 @@ Next.js links in the finding map were read from nextjs.org and match `node_modul
 | `with-vs-without.sh` | Two checkouts, one with skills, guards, hooks, and `AGENTS.md`, one without. The live agent also needs `DEMO_RUN_AGENT=1`. |
 | `doc-map.sh`         | Rule id to doc link. Sourced by the scripts.                                                                               |
 
-`.cursor/rules` stays in both checkouts. `demo/` is removed from both so this bad patch is not sitting in the agent's checkout. The checkouts are separate clones, not linked worktrees. A key already in the shell does not start the agent. `DEMO_RUN_AGENT=1` does. That run uses `--sandbox enabled`, a temporary `HOME`, and only `CURSOR_API_KEY` from the parent environment. Fail-closed hooks are copied back onto the stripped checkout before the agent starts. Skills, `AGENTS.md`, `guardrails.json`, and `scripts/guard` stay absent there. `bash demo/with-vs-without.test.sh` covers that gate with a fake `agent` binary. The real CLI was not executed.
+`.cursor/rules` stays in both checkouts. `demo/` is removed from both so this bad patch is not sitting in the agent's checkout. The checkouts are separate clones, not linked worktrees. A key already in the shell does not start the agent. `DEMO_RUN_AGENT=1` does. That run uses `--sandbox enabled`, a temporary `HOME`, and only `CURSOR_API_KEY` from the parent environment. Fail-closed shell and read hooks are copied back onto the stripped checkout before the agent starts. The stop hook is not, so a checkout without the guard scripts does not get a fix-every-error follow-up. Skills, `AGENTS.md`, `guardrails.json`, and `scripts/guard` stay absent there. `bash demo/with-vs-without.test.sh` covers that gate with a fake `agent` binary. The real CLI was not executed.
 
 ## Run
 
@@ -238,8 +238,9 @@ To run the same prompt in both checkouts:
 
 DEMO_RUN_AGENT=1 is required in addition to the key. The agent is then
 started with --sandbox enabled and a scrubbed environment (PATH, a temporary
-HOME, TMPDIR, LANG, and CURSOR_API_KEY only). Fail-closed hooks are restored
-on the stripped checkout before that command. Skills, AGENTS.md,
+HOME, TMPDIR, LANG, and CURSOR_API_KEY only). Fail-closed shell and read
+hooks are restored on the stripped checkout before that command. The stop
+hook is not, because that checkout has no guard scripts. Skills, AGENTS.md,
 guardrails.json, and scripts/guard stay absent there.
 
 The Cloud Agents API (POST https://api.cursor.com/v1/agents) launches against

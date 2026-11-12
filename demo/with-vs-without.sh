@@ -72,11 +72,28 @@ strip_setup() {
     "$wt/.cursor/guardrails.json"
 }
 
-restore_hooks() {
+# Shell and read hooks are fail-closed. The stop hook runs the guard and, on
+# failure, tells the agent to fix every error. The stripped checkout has no
+# scripts/guard, so that stop hook must stay off or the comparison is not
+# "without guards".
+restore_safety_hooks() {
   local wt="$1"
   mkdir -p "$wt/.cursor/hooks"
-  cp "$ROOT/.cursor/hooks.json" "$wt/.cursor/hooks.json"
-  cp -a "$ROOT/.cursor/hooks/." "$wt/.cursor/hooks/"
+  cp "$ROOT/.cursor/hooks/guard-shell.mjs" "$wt/.cursor/hooks/guard-shell.mjs"
+  cp "$ROOT/.cursor/hooks/guard-read.mjs" "$wt/.cursor/hooks/guard-read.mjs"
+  cat >"$wt/.cursor/hooks.json" <<'EOF'
+{
+  "version": 1,
+  "hooks": {
+    "beforeShellExecution": [
+      { "command": "node .cursor/hooks/guard-shell.mjs", "failClosed": true, "timeout": 10 }
+    ],
+    "beforeReadFile": [
+      { "command": "node .cursor/hooks/guard-read.mjs", "failClosed": true, "timeout": 10 }
+    ]
+  }
+}
+EOF
 }
 
 strip_setup "$without_wt"
@@ -128,8 +145,9 @@ To run the same prompt in both checkouts:
 
 DEMO_RUN_AGENT=1 is required in addition to the key. The agent is then
 started with --sandbox enabled and a scrubbed environment (PATH, a temporary
-HOME, TMPDIR, LANG, and CURSOR_API_KEY only). Fail-closed hooks are restored
-on the stripped checkout before that command. Skills, AGENTS.md,
+HOME, TMPDIR, LANG, and CURSOR_API_KEY only). Fail-closed shell and read
+hooks are restored on the stripped checkout before that command. The stop
+hook is not, because that checkout has no guard scripts. Skills, AGENTS.md,
 guardrails.json, and scripts/guard stay absent there.
 
 The Cloud Agents API (POST https://api.cursor.com/v1/agents) launches against
@@ -165,9 +183,9 @@ if ! command -v agent >/dev/null 2>&1; then
   exit 0
 fi
 
-echo "Restoring fail-closed hooks before the live agent."
-echo "Skills, AGENTS.md, guardrails.json, and scripts/guard stay stripped on without-setup."
-restore_hooks "$without_wt"
+echo "Restoring fail-closed shell and read hooks before the live agent."
+echo "The stop hook stays off without-setup. Skills, AGENTS.md, guardrails.json, and scripts/guard stay stripped there."
+restore_safety_hooks "$without_wt"
 if [[ ! -f "$with_wt/.cursor/hooks.json" || ! -d "$with_wt/.cursor/hooks" || ! -f "$without_wt/.cursor/hooks.json" || ! -d "$without_wt/.cursor/hooks" ]]; then
   echo "Refusing to start the agent: fail-closed hooks are missing from a checkout." >&2
   exit 1

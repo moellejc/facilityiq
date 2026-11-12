@@ -100,10 +100,10 @@ run_guard() {
     (cd "$guard_dir" && pnpm guard >"$out" 2>&1)
     guard_exit=$?
   else
-    {
+    (
       echo "pnpm guard needs node_modules in the worktree. Running node scripts/guard/pre-pr.mjs, which is the pnpm guard script."
       cd "$guard_dir" && node scripts/guard/pre-pr.mjs
-    } >"$out" 2>&1
+    ) >"$out" 2>&1
     guard_exit=$?
   fi
   set -e

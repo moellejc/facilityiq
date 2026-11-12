@@ -11,7 +11,21 @@ fail() {
 }
 
 tmp="$(mktemp -d)"
-trap 'rm -rf "$tmp"; rm -f "$ROOT/$PAGE"' EXIT
+created_page=0
+created_page_dir=0
+page_dir="$(dirname "$ROOT/$PAGE")"
+cleanup() {
+  local status=$?
+  rm -rf "$tmp"
+  if [[ "$created_page" -eq 1 ]]; then
+    rm -f "$ROOT/$PAGE"
+  fi
+  if [[ "$created_page_dir" -eq 1 ]]; then
+    rmdir "$page_dir" 2>/dev/null || true
+  fi
+  exit "$status"
+}
+trap cleanup EXIT
 
 cat >"$tmp/agent" <<'EOF'
 #!/usr/bin/env bash
@@ -49,6 +63,11 @@ done
   else
     echo "HOOKS:absent"
   fi
+  if [[ -n "$workspace" && -f "$workspace/.cursor/hooks.json" ]] && grep -q '"stop"' "$workspace/.cursor/hooks.json"; then
+    echo "STOP_HOOK:present"
+  else
+    echo "STOP_HOOK:absent"
+  fi
   if [[ -n "$workspace" ]]; then
     echo "REMOTES:$(git -C "$workspace" remote -v)"
     echo "WORKTREES:$(git -C "$workspace" worktree list)"
@@ -58,7 +77,8 @@ done
   fi
 } >>"$log"
 EOF
-sed -i "s|__AGENT_LOG__|$tmp/agent.log|" "$tmp/agent"
+agent_body="$(cat "$tmp/agent")"
+printf '%s\n' "${agent_body//__AGENT_LOG__/$tmp/agent.log}" >"$tmp/agent"
 chmod +x "$tmp/agent"
 
 run_case() {
@@ -109,6 +129,8 @@ grep -q 'SERVICE_KEY:set' "$tmp/armed.log" && fail "service-account key was forw
 grep -q 'API_KEY:set' "$tmp/armed.log" || fail "CURSOR_API_KEY was not set in the child"
 grep -q 'HOOKS:absent' "$tmp/armed.log" && fail "live agent ran without hooks"
 grep -q 'HOOKS:present' "$tmp/armed.log" || fail "hooks were not present"
+[[ "$(grep -c '^STOP_HOOK:present$' "$tmp/armed.log")" -eq 1 ]] || fail "with-setup must keep the stop hook"
+[[ "$(grep -c '^STOP_HOOK:absent$' "$tmp/armed.log")" -eq 1 ]] || fail "without-setup must not get the stop hook"
 grep -q "synthetic-sa" "$out" && fail "armed run printed the key"
 grep -q "canary-value" "$out" && fail "armed run printed the canary"
 grep -q "Skipping unsafe path: src/comma,name.ts" "$out" || fail "unsafe path was not skipped"
@@ -123,16 +145,29 @@ done <"$tmp/armed.log"
 echo "  ok"
 
 echo "case: run-guard-demo refuses an existing fixture path"
-mkdir -p "$(dirname "$ROOT/$PAGE")"
-: >"$ROOT/$PAGE"
-set +e
-bash "$ROOT/demo/run-guard-demo.sh" >"$tmp/refuse.out" 2>&1
-refuse_code=$?
-set -e
-rm -f "$ROOT/$PAGE"
-[[ "$refuse_code" -eq 2 ]] || fail "run-guard-demo exit $refuse_code, expected 2"
-grep -q "Refusing to run" "$tmp/refuse.out" || fail "run-guard-demo did not refuse"
-[[ ! -e "$ROOT/$PAGE" ]] || fail "fixture path left behind"
-echo "  ok"
+if [[ -e "$ROOT/$PAGE" ]]; then
+  echo "  skipped: ${PAGE} already exists and was not touched"
+else
+  if [[ ! -d "$page_dir" ]]; then
+    created_page_dir=1
+    mkdir -p "$page_dir"
+  fi
+  : >"$ROOT/$PAGE"
+  created_page=1
+  set +e
+  bash "$ROOT/demo/run-guard-demo.sh" >"$tmp/refuse.out" 2>&1
+  refuse_code=$?
+  set -e
+  rm -f "$ROOT/$PAGE"
+  created_page=0
+  if [[ "$created_page_dir" -eq 1 ]]; then
+    rmdir "$page_dir" 2>/dev/null || true
+    created_page_dir=0
+  fi
+  [[ "$refuse_code" -eq 2 ]] || fail "run-guard-demo exit $refuse_code, expected 2"
+  grep -q "Refusing to run" "$tmp/refuse.out" || fail "run-guard-demo did not refuse"
+  [[ ! -e "$ROOT/$PAGE" ]] || fail "fixture path left behind"
+  echo "  ok"
+fi
 
 echo "with-vs-without checks passed"
