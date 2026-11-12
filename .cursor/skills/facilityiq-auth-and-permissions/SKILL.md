@@ -35,6 +35,7 @@ Check the file for the exact matrix before relying on it.
 
 - Use `assertRole(role, permission)` at the start of every service function; `roleCan` for conditional DTO fields.
 - Add a new permission to `PERMISSIONS` and the `MATRIX` rather than checking role names directly.
+- The admin panel (`/admin`) is gated with `canAccessAdmin`, which is true only when the membership has `members:write`, `organization:update`, `facilities:write`, `integrations:manage`, and `settings:manage`. That set is `org_admin` today. Do not add an `admin` role. Hide the nav item and still reject the service call.
 - **Finance gating:** check `finance:read` before including cost/ROI in a DTO, heatmap, or cache entry. Hiding a chart is not protection.
 - Hiding a button is not authorization; the service must reject.
 

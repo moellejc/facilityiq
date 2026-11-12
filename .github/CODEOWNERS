@@ -1,0 +1,9 @@
+# CODEOWNERS is advisory until branch protection is enabled.
+# GitFlow section 2 calls for protection on main, and on develop once a maintainer creates it.
+# This repository does not enable branch protection in code, and this change does not turn it on.
+* @moellejc
+/.github/ @moellejc
+/src/db/migrations/ @moellejc
+/.cursor/ @moellejc
+/scripts/guard/ @moellejc
+/src/lib/permissions/ @moellejc

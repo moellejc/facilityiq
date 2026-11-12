@@ -11,7 +11,7 @@ Source: Notion CI Process §1–3, §6–7.
 
 Runs on `pull_request`, push to `main`, and `workflow_call`. Order:
 
-1. `pnpm install --frozen-lockfile` (pnpm 10, Node 22)
+1. `pnpm install --frozen-lockfile` (Node 22; pnpm version from `package.json` `packageManager`, currently pnpm 10). Do not also set `version` on `pnpm/action-setup`.
 2. `pnpm format:check`
 3. `pnpm lint`
 4. `pnpm typecheck` (`next typegen && tsc --noEmit`)

@@ -23,8 +23,9 @@ Skills live in `.cursor/skills/<name>/SKILL.md`. Read the whole skill before act
 | Reviewing a PR or diff                                                              | `facilityiq-code-review`                                   |
 | Change touching auth, tenancy, files, secrets, AI, or caching                       | add `facilityiq-security-review`                           |
 | Orienting in the codebase                                                           | `facilityiq-coding-conventions` (overview and skill index) |
+| First change, or "where do I start"                                                 | `facilityiq-first-contribution`                            |
 
-Every code change ends with `facilityiq-pr-readiness`.
+Every code change ends with `facilityiq-pr-readiness`. Run `pnpm guard` before that. What the guard enforces, and what stays advisory, is in `docs/guardrails.md`. The `/first-pr` command follows the first-contribution skill. GitFlow says feature PRs target `develop`; this repo has no `develop` branch, so PRs target `main` until a maintainer creates it.
 
 ## 2. Load the domain skills for the areas you touch
 
@@ -93,6 +94,7 @@ pnpm format:check && pnpm lint && pnpm typecheck
 pnpm test:unit
 pnpm db:migrate && pnpm test:integration   # requires PostgreSQL 16
 pnpm build
+pnpm guard                                 # new violations only; see docs/guardrails.md
 docker compose up --build                  # full local stack (app, worker, postgres, minio)
 ```
 

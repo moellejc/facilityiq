@@ -12,6 +12,7 @@ import {
   financialMetrics,
   importJobs,
   insights,
+  integrations,
   operationalMetrics,
   organizationMembers,
   organizations,
@@ -44,6 +45,7 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
   scenarios: many(scenarios),
   insights: many(insights),
   files: many(uploadedFiles),
+  integrations: many(integrations),
   auditLogs: many(auditLogs),
   jobs: many(backgroundJobs),
 }));
@@ -191,6 +193,13 @@ export const uploadedFilesRelations = relations(uploadedFiles, ({ one }) => ({
     references: [facilities.id],
   }),
   asset: one(assets, { fields: [uploadedFiles.assetId], references: [assets.id] }),
+}));
+
+export const integrationsRelations = relations(integrations, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [integrations.organizationId],
+    references: [organizations.id],
+  }),
 }));
 
 export const importJobsRelations = relations(importJobs, ({ one }) => ({

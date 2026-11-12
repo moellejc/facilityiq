@@ -1,0 +1,39 @@
+diff --git a/src/app/(dashboard)/finance/cost-by-category/page.tsx b/src/app/(dashboard)/finance/cost-by-category/page.tsx
+new file mode 100644
+index 0000000..de4e984
+--- /dev/null
++++ b/src/app/(dashboard)/finance/cost-by-category/page.tsx
+@@ -0,0 +1,20 @@
++import { useRouter } from "next/router";
++import Head from "next/head";
++import { db } from "@/db";
++import { financialMetrics } from "@/db/schema";
++import { CostChart } from "@/components/finance/cost-chart";
++
++export async function getServerSideProps() {
++  const rows = await db.select().from(financialMetrics);
++  return { props: { rows } };
++}
++
++export default function CostByCategoryPage({ params }: { params: { id: string } }) {
++  const router = useRouter();
++  return (
++    <div>
++      <Head><title>Cost by category</title></Head>
++      <CostChart total={rows.reduce((a: number, r: any) => a + Number(r.amount), 0).toFixed(2)} />
++    </div>
++  );
++}
+diff --git a/src/components/finance/cost-chart.tsx b/src/components/finance/cost-chart.tsx
+new file mode 100644
+index 0000000..711884e
+--- /dev/null
++++ b/src/components/finance/cost-chart.tsx
+@@ -0,0 +1,7 @@
++"use client";
++import { getFacilityAnalytics } from "@/server/services/analytics-service";
++
++export default async function CostChart({ total }: { total: string }) {
++  const data = await getFacilityAnalytics({} as never);
++  return <div>{total}{JSON.stringify(data)}</div>;
++}
