@@ -11,6 +11,7 @@ import {
   ratchet,
   read,
   renderFindings,
+  sourceLine,
 } from "./lib.mjs";
 
 function scan(config, file, text) {
@@ -31,6 +32,7 @@ function scan(config, file, text) {
           rule.message,
           rule.skill,
           rule.standard,
+          sourceLine(text, match.index),
         ),
       );
       if (match.index === re.lastIndex) re.lastIndex++;

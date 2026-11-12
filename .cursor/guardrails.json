@@ -37,6 +37,8 @@
       "allow": [
         "src/app/(dashboard)/finance/**",
         "src/components/finance/**",
+        "src/components/dashboard/facility-analytics.tsx",
+        "src/components/layout/app-shell.tsx",
         "src/components/layout/navigation.ts",
         "src/server/services/analytics-service.ts",
         "src/lib/analytics/**",
@@ -67,7 +69,7 @@
       ]
     }
   },
-  "ratchet": "Guards fail only on new violations in changed files (count above the base branch). Existing debt is reported by pnpm guard:baseline, which exits 0.",
+  "ratchet": "Guards fail only on new violations in changed files. Each finding is fingerprinted by rule and source line, with whitespace collapsed. A line that already exists for that rule on the base branch is not reported again. A different line fails even when the count stays the same, including a hit that replaces an earlier one or is inserted above the baseline hits. Existing debt is reported by pnpm guard:baseline, which exits 0.",
   "newDependencyPolicy": "A dependency add or version change fails unless GUARD_ALLOW_DEPS=1 (human reviewer, CI label deps-approved).",
   "importRules": [
     {
@@ -92,6 +94,14 @@
       "message": "Routes and pages are thin. No Drizzle or SQL here. Call one service.",
       "skill": "facilityiq-api-routes",
       "standard": "Coding Conventions §3 and §14; GitFlow §6"
+    },
+    {
+      "id": "component-imports-db",
+      "appliesTo": ["src/components/**"],
+      "forbid": ["^drizzle-orm", "^@/db(/|$)", "^pg$"],
+      "message": "Components do not import the database, Drizzle, or pg. A Server Component page calls a service and passes serializable props.",
+      "skill": "facilityiq-coding-conventions",
+      "standard": "Coding Conventions §3 and §15"
     },
     {
       "id": "route-imports-repository",

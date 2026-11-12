@@ -4,12 +4,18 @@ import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { execFileSync } from "node:child_process";
 import { checkBoundaries } from "./boundaries.mjs";
 import { checkDeprecated } from "./deprecated-apis.mjs";
+import { driftProblems } from "./drift-check.mjs";
 import { loadConfig, ratchetFindings } from "./lib.mjs";
 import { checkTestStrength } from "./test-strength.mjs";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
+
+function repoFile(file) {
+  return new URL(`../../${file}`, import.meta.url);
+}
 
 process.env.GUARD_NO_RATCHET = "1";
 const config = loadConfig();
@@ -100,6 +106,117 @@ test("unknown scope fails closed", () => {
   assert.equal(result[0].rule, "unknown-scope");
 });
 
+test("finance-route includes the shared analytics view and breadcrumb shell, and excludes API routes", () => {
+  const allow = config.scopes["finance-route"].allow;
+  assert.ok(allow.includes("src/components/dashboard/facility-analytics.tsx"));
+  assert.ok(allow.includes("src/components/layout/app-shell.tsx"));
+  assert.equal(
+    allow.some((glob) => glob === "src/app/api/**" || glob === "src/app/**"),
+    false,
+  );
+
+  const inScope = files({
+    "src/components/dashboard/facility-analytics.tsx": "export const a = 1\n",
+    "src/components/layout/app-shell.tsx": "export const b = 1\n",
+  });
+  const inRules = checkBoundaries(config, inScope.list, inScope.read, {
+    GUARD_SCOPE: "finance-route",
+  }).map((item) => item.rule);
+  assert.equal(inRules.includes("outside-scope"), false);
+
+  const api = files({
+    "src/app/api/finance/route.ts": "export function GET() { return null }\n",
+  });
+  const apiRules = checkBoundaries(config, api.list, api.read, {
+    GUARD_SCOPE: "finance-route",
+  }).map((item) => item.rule);
+  assert.ok(apiRules.includes("outside-scope"));
+});
+
+test("a server component cannot import @/db, drizzle-orm, or pg", () => {
+  const component = files({
+    "src/components/finance/cost-table.tsx": `import { db } from "@/db";\nimport { sql } from "drizzle-orm";\nimport pg from "pg";\nexport function CostTable() { return null }\n`,
+  });
+  const hits = checkBoundaries(config, component.list, component.read, {
+    GUARD_SCOPE: "default",
+  }).filter((item) => item.rule === "component-imports-db");
+  assert.equal(hits.length, 3);
+});
+
+test("no current component file imports @/db, drizzle-orm, or pg", () => {
+  const rule = config.importRules.find((item) => item.id === "component-imports-db");
+  assert.ok(rule, "component-imports-db is not configured");
+  const listed = execFileSync("git", ["ls-files", "-z", "--", "src/components"], {
+    cwd: ROOT,
+    encoding: "utf8",
+  })
+    .split("\0")
+    .filter((file) => /\.(tsx?|jsx?)$/.test(file));
+  const offenders = [];
+  for (const file of listed) {
+    const hits = checkBoundaries(config, [file], (path) => readFileSync(repoFile(path), "utf8"), {
+      GUARD_SCOPE: "default",
+    }).filter((item) => item.rule === "component-imports-db");
+    if (hits.length) offenders.push(file);
+  }
+  assert.deepEqual(offenders, []);
+});
+
+test("a new or changed dependency fails unless GUARD_ALLOW_DEPS=1", () => {
+  const base = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8"));
+  const unchanged = checkBoundaries(config, ["package.json"], () => JSON.stringify(base), {
+    GUARD_SCOPE: "infra",
+  }).filter((item) => item.rule === "new-dependency");
+  assert.equal(unchanged.length, 0);
+
+  const changed = JSON.parse(JSON.stringify(base));
+  changed.dependencies = {
+    ...changed.dependencies,
+    next: "99.0.0",
+    "example-new-dep": "1.2.3",
+  };
+  const readPkg = () => JSON.stringify(changed);
+  const blocked = checkBoundaries(config, ["package.json"], readPkg, {
+    GUARD_SCOPE: "infra",
+  }).filter((item) => item.rule === "new-dependency");
+  assert.ok(blocked.some((item) => item.message.includes("dependencies.next@99.0.0")));
+  assert.ok(blocked.some((item) => item.message.includes("dependencies.example-new-dep@1.2.3")));
+  const allowed = checkBoundaries(config, ["package.json"], readPkg, {
+    GUARD_SCOPE: "infra",
+    GUARD_ALLOW_DEPS: "1",
+  }).filter((item) => item.rule === "new-dependency");
+  assert.equal(allowed.length, 0);
+});
+
+test("drift check fails on a verifiedAgainst mismatch and on a missing skill", () => {
+  const mismatch = driftProblems(
+    { verifiedAgainst: { next: "15" }, deprecated: [], importRules: [] },
+    { dependencies: { next: "16.4.0" }, devDependencies: {} },
+  );
+  assert.ok(mismatch.some((problem) => problem.includes("next") && problem.includes("16.4.0")));
+
+  const aligned = driftProblems(
+    { verifiedAgainst: { next: "16" }, deprecated: [], importRules: [] },
+    { dependencies: { next: "^16.4.0" }, devDependencies: {} },
+  );
+  assert.deepEqual(aligned, []);
+
+  const missing = driftProblems(
+    {
+      verifiedAgainst: {},
+      deprecated: [{ skill: "facilityiq-not-a-real-skill" }],
+      importRules: [{ skill: "facilityiq-unit-testing" }],
+    },
+    { dependencies: {}, devDependencies: {} },
+  );
+  assert.deepEqual(missing, ['Rule references missing skill "facilityiq-not-a-real-skill".']);
+});
+
+test("a worker change without a test fails logic-without-tests", () => {
+  const only = files({ "worker/index.ts": "export const run = () => 1\n" });
+  assert.equal(checkTestStrength(config, only.list, only.read)[0].rule, "logic-without-tests");
+});
+
 test("logic change without a test fails; assertion-free test fails; .only fails", () => {
   const logicOnly = files({ "src/lib/analytics/cost.ts": "export const a = 1" });
   assert.equal(
@@ -131,12 +248,48 @@ test("a strong test passes", () => {
   );
 });
 
-test("ratchet keeps only the violations added above the baseline count", () => {
-  const base = [{ rule: "adhoc-tofixed" }, { rule: "adhoc-tofixed" }];
-  const same = [{ rule: "adhoc-tofixed" }, { rule: "adhoc-tofixed" }];
-  const more = [...same, { rule: "adhoc-tofixed" }];
+test("identical fingerprints stay quiet and one extra copy of the same fingerprint is reported", () => {
+  const base = [
+    { rule: "adhoc-tofixed", snippet: "const a = (1).toFixed(2);" },
+    { rule: "adhoc-tofixed", snippet: "const a = (1).toFixed(2);" },
+  ];
+  const same = [
+    { rule: "adhoc-tofixed", snippet: "const a = (1).toFixed(2);" },
+    { rule: "adhoc-tofixed", snippet: "const a = (1).toFixed(2);" },
+  ];
+  const more = [...same, { rule: "adhoc-tofixed", snippet: "const a = (1).toFixed(2);" }];
   assert.equal(ratchetFindings(same, base).length, 0);
   assert.equal(ratchetFindings(more, base).length, 1);
+});
+
+test("a hit that replaces an earlier one fails the ratchet", () => {
+  const base = [
+    { rule: "adhoc-tofixed", snippet: "const a = (1).toFixed(2);" },
+    { rule: "adhoc-tofixed", snippet: "const b = (2).toFixed(2);" },
+  ];
+  const replaced = [
+    { rule: "adhoc-tofixed", snippet: "const c = (3).toFixed(2);" },
+    { rule: "adhoc-tofixed", snippet: "const b = (2).toFixed(2);" },
+  ];
+  const kept = ratchetFindings(replaced, base);
+  assert.equal(kept.length, 1);
+  assert.equal(kept[0].snippet, "const c = (3).toFixed(2);");
+});
+
+test("a hit inserted above the baseline hits is the one reported", () => {
+  const base = [
+    { rule: "adhoc-tofixed", snippet: "const a = (1).toFixed(2);", line: 10 },
+    { rule: "adhoc-tofixed", snippet: "const b = (2).toFixed(2);", line: 11 },
+  ];
+  const inserted = [
+    { rule: "adhoc-tofixed", snippet: "const c = (3).toFixed(2);", line: 9 },
+    { rule: "adhoc-tofixed", snippet: "const a = (1).toFixed(2);", line: 11 },
+    { rule: "adhoc-tofixed", snippet: "const b = (2).toFixed(2);", line: 12 },
+  ];
+  const kept = ratchetFindings(inserted, base);
+  assert.equal(kept.length, 1);
+  assert.equal(kept[0].line, 9);
+  assert.equal(kept[0].snippet, "const c = (3).toFixed(2);");
 });
 
 test("ci.yml does not pin a pnpm version beside packageManager", () => {
@@ -241,6 +394,83 @@ test("shell hook denies force-push, merge, and curl, and allows a normal push", 
       .permission,
     "allow",
   );
+});
+
+test("replacing a baselined toFixed and inserting one above the old hits are both reported", () => {
+  const script = `
+    import { readFileSync } from "node:fs";
+    import { checkDeprecated } from "./scripts/guard/deprecated-apis.mjs";
+    const config = JSON.parse(readFileSync(".cursor/guardrails.json", "utf8"));
+    const ui = "src/components/charts/metric-charts.tsx";
+    const uiText = readFileSync(ui, "utf8");
+    const replaced = uiText.replace(".toFixed(1)", ".toFixed(4)");
+    const replacedHits = checkDeprecated(config, [ui], () => replaced, true).filter(
+      (item) => item.rule === "adhoc-tofixed",
+    );
+    if (replacedHits.length !== 1 || !String(replacedHits[0].snippet).includes("toFixed(4)")) {
+      console.error("replaced", replacedHits);
+      process.exit(2);
+    }
+    const inserted = uiText.replace(
+      '"use client";\\n',
+      '"use client";\\nconst extra = (9).toFixed(3);\\n',
+    );
+    const insertedHits = checkDeprecated(config, [ui], () => inserted, true).filter(
+      (item) => item.rule === "adhoc-tofixed",
+    );
+    if (insertedHits.length !== 1 || !String(insertedHits[0].snippet).includes("toFixed(3)")) {
+      console.error("inserted", insertedHits);
+      process.exit(3);
+    }
+    const baselineLine = uiText.split("\\n").findIndex((line) => line.includes(".toFixed(")) + 1;
+    if (insertedHits[0].line >= baselineLine) {
+      console.error("reported a baseline line", insertedHits[0].line, baselineLine);
+      process.exit(4);
+    }
+  `;
+  const result = spawnSync(process.execPath, ["--input-type=module", "-e", script], {
+    cwd: ROOT,
+    env: {
+      ...process.env,
+      GUARD_NO_RATCHET: "0",
+      GUARD_BASE: "origin/main",
+      GUARD_SCOPE: "default",
+    },
+    encoding: "utf8",
+  });
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+});
+
+test("stop hook sends a follow-up when the guard fails and stays quiet when it passes", () => {
+  const fail = spawnSync(process.execPath, [".cursor/hooks/stop-guard.mjs"], {
+    cwd: ROOT,
+    input: JSON.stringify({ status: "completed" }),
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      GUARD_FILES: "src/components/charts/metric-charts.tsx",
+      GUARD_NO_RATCHET: "1",
+      GUARD_SCOPE: "default",
+    },
+  });
+  assert.equal(fail.status, 0, fail.stderr);
+  const body = JSON.parse(fail.stdout);
+  assert.match(body.followup_message, /pre-PR guard failed/);
+  assert.match(body.followup_message, /adhoc-tofixed/);
+
+  const pass = spawnSync(process.execPath, [".cursor/hooks/stop-guard.mjs"], {
+    cwd: ROOT,
+    input: JSON.stringify({ status: "completed" }),
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      GUARD_FILES: "README.md",
+      GUARD_NO_RATCHET: "1",
+      GUARD_SCOPE: "default",
+    },
+  });
+  assert.equal(pass.status, 0, pass.stderr);
+  assert.deepEqual(JSON.parse(pass.stdout), {});
 });
 
 test("read hook denies .env and allows .env.example", () => {

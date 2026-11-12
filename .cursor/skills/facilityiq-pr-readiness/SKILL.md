@@ -9,21 +9,23 @@ Source: Notion SDLC Best Practices §2–3, §9–10; CI Process §2, §6.
 
 ## 1. Run the CI-equivalent checks
 
-Mirror `.github/workflows/ci.yml` in order and record each result:
+Mirror `.github/workflows/ci.yml`, and run `pnpm guard` (`.github/workflows/guardrails.yml`) as well. Record each result. The PR body is `.github/pull_request_template.md`, which lists these commands in the "Tests actually run" section:
 
 ```bash
 pnpm install --frozen-lockfile
+pnpm guard                 # or: node scripts/guard/pre-pr.mjs
+pnpm guard:test            # guard self-tests, when the guard itself changed
 pnpm format:check
 pnpm lint
 pnpm typecheck
 pnpm test:unit
-pnpm db:migrate          # needs PostgreSQL 16
-pnpm test:integration    # needs DATABASE_URL_TEST
+pnpm db:migrate            # needs PostgreSQL 16
+pnpm test:integration      # needs DATABASE_URL_TEST
 pnpm build
 pnpm exec playwright test  # only if tests/e2e has *.spec.ts
 ```
 
-If a check can't run locally, say so explicitly — never report it as passed. Lint and build do not prove tenancy, authorization, or coverage.
+Tick a box only for a command that ran, and write the command and the result. If a check did not run, leave its box unchecked and say so under "Skipped / not run / failed". Never report a check as passed when it did not run. That includes `pnpm guard`. Lint and build do not prove tenancy, authorization, or coverage.
 
 ## 2. Self-review
 
@@ -32,6 +34,7 @@ Run `facilityiq-code-review` against your own diff. If the change touches auth, 
 ## 3. Definition of done
 
 - [ ] Working behavior end to end
+- [ ] `pnpm guard` ran, or the report says it did not
 - [ ] Tests actually run, results recorded
 - [ ] New versioned migration if schema changed
 - [ ] Living docs updated (`facilityiq-documentation-updates`)
@@ -40,45 +43,24 @@ Run `facilityiq-code-review` against your own diff. If the change touches auth, 
 
 ## 4. PR description
 
-```markdown
-## What and why
+Write the body from `.github/pull_request_template.md` (GitFlow §9.2). Do not substitute a different outline. `develop` does not exist; say in the GitFlow target section that the PR targets `main`.
 
-[What changed and why. Link the issue/requirement.]
+Fill every section in that file:
 
-## Acceptance criteria
+- Summary
+- Linear issue
+- Type and GitFlow target
+- Changes
+- Tenancy and roles impact
+- Tests actually run — include `pnpm guard`. Check a box only if that command ran. If it did not run, leave the box unchecked and say why.
+- Demo video
+- Screenshots (optional)
+- Risk and rollback
+- Security and privacy notes
+- Release notes
+- Checklist
 
-- [ ] ...
-
-## How
-
-[Approach. Touched: schema/migrations, services/repositories, routes, client/server boundaries.]
-
-## Risk callouts
-
-- Permissions / RLS / file access: [changes or "none"]
-- Cache scope / invalidation: [changes or "none"]
-- Worker / retry / idempotency: [changes or "none"]
-- Observed vs projected / money math: [changes or "none"]
-
-## Evidence
-
-- Screenshots / interaction notes: [if UI; never in place of working behavior]
-- Checks run:
-  - pnpm format:check — pass
-  - pnpm lint — pass
-  - pnpm typecheck — pass
-  - pnpm test:unit — N passed
-  - pnpm test:integration — N passed / not run (reason)
-  - pnpm build — pass
-  - Playwright — skipped (no specs) / N passed
-- Regression test: [name; confirmed failing before fix] (bug fixes)
-- Tenant/role coverage: [tests]
-- No-AI-key check: [if insights touched]
-
-## Docs updated
-
-[List, or "none needed" with reason]
-```
+For a bug fix, name the regression test and that it failed before the fix.
 
 ## 5. Increment report (to the user)
 
