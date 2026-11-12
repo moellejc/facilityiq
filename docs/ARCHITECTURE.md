@@ -70,6 +70,8 @@ Implement the full normalized schema in Phase 1 (even if later UI phases consume
 
 **Specified domains:** `users`, `organizations`, `organization_members`, `facilities`, `facility_areas`, `assets`, `facility_layouts`, `operational_metrics`, `asset_events`, `financial_metrics`, `scenarios`, `scenario_results`, `insights`.
 
+**Also implemented:** `integrations`, an organization-scoped catalog of external systems (name, provider `sap` or `custom`, status, optional non-secret external reference). It does not store credentials and does not run a synchronization. SAP connection secrets remain a separate piece of work.
+
 **Also required:** Auth.js adapter tables, `uploaded_files`, `import_jobs`, `audit_logs`, `background_jobs`.
 
 Conventions:
@@ -90,6 +92,14 @@ App Router handlers under `src/app/api/...` as specified:
 
 `/api/organizations`, `/api/facilities`, `/api/facilities/[id]`, areas, assets, layout, metrics, financials, insights, `/api/scenarios`, `/api/scenarios/[id]`, `/api/scenarios/[id]/run`, `/api/uploads`, `/api/reports`.
 
+Admin mutations use the same services as the admin panel:
+
+- `POST /api/facilities`, `PATCH /api/facilities/[id]`, `DELETE /api/facilities/[id]` require `facilities:write`. `GET` stays `facilities:read`.
+- `GET /api/members` requires `members:read`. `POST /api/members`, `PATCH /api/members/[id]`, and `DELETE /api/members/[id]` require `members:write`.
+- `GET`, `POST /api/integrations` and `PATCH`, `DELETE /api/integrations/[id]` require `integrations:manage`.
+
+A missing resource in another organization is `404`. A role without the permission is `403`. Facility and integration names are unique per organization; a duplicate is `409`. The last organization administrator cannot be demoted or removed.
+
 Phase 1 implements auth, organization, facility list/get, and health. Remaining routes may return authenticated stubs only if the schema and services are not yet wired; prefer real list/get over fake JSON. Use page/limit pagination (max 100) with `total` for tables, plus filtering and sorting where lists need it.
 
 ## 7. Frontend information architecture
@@ -103,7 +113,9 @@ Professional enterprise shell:
 - Desktop-first, usable on tablet
 - Typography: Geist or Inter, compact data-dense layouts
 
-Primary nav as specified: Dashboard; Facilities (Overview, 3D Digital Twin, Areas, Assets, Layouts); Operations (Throughput, Utilization, Bottlenecks); Finance (Operating Costs, Cost per Order, Asset Costs); Scenarios; AI Insights; Reports; Settings.
+Primary nav as specified, in this order: Dashboard; Facilities (Overview, 3D Digital Twin, Areas, Assets, Layouts); Operations (Throughput, Utilization, Bottlenecks); Finance (Operating Costs, Cost per Order, Asset Costs); Scenarios; AI Insights; Reports; Settings.
+
+An **Admin** item is appended after Settings only when the signed-in membership has the organization-administrator permissions (`canAccessAdmin` in `src/lib/permissions`). It is not a new role. Other roles do not see it. The user menu item "Organization settings" opens `/admin` for those same administrators. Settings stays at `/settings` and shows only the signed-in person's profile. Organization name, members, facilities, and integration records are on `/admin`.
 
 Phase 1 builds the real shell and navigation. Pages other than sign-in, dashboard home, and settings may be routed shells that explain they will light up in later phases — do not fake KPI numbers.
 
@@ -241,6 +253,8 @@ These are concrete incompatibilities or practical additions. The rest of this do
 8. **Seed clock is fixed.** Operational and financial history ends on 2026-11-01 UTC (30 days, inclusive). Repeating the seed deletes Acme Manufacturing and inserts the same business keys and values. Password hashes are Argon2id and are not byte-stable; the demo password is.
 
 9. **Financial rows do not double-count conveyor maintenance.** Facility-level maintenance is building overhead ($180/day). CV-01, CV-02, and CV-03 maintenance is stored only on the asset. A later rollup must sum both scopes once each.
+
+10. **Admin panel.** Organization administration lives at `/admin`, gated by the existing `org_admin` permissions (`members:write`, `organization:update`, `facilities:write`, `integrations:manage`, and `settings:manage`). Settings is the personal profile. The `integrations` table is a catalog only. It is not the encrypted SAP connection store, and saving a row does not synchronize data. Adding a member attaches an existing account by email; creating a new account or sending an invitation is not part of this panel. Removing a facility cascades its child rows through the existing foreign keys.
 
 ## 18. Phase 2 notes
 

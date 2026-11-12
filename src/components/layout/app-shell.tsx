@@ -23,11 +23,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { ROLE_LABELS, roleCan, type Role } from "@/lib/permissions";
+import { ROLE_LABELS, canAccessAdmin, type Role } from "@/lib/permissions";
 import { setActiveFacility, setActiveOrganization } from "@/server/actions/preferences";
 import { signOutAction } from "@/server/actions/session";
 
-import { NAV_ITEMS, isNavActive, type NavItem } from "./navigation";
+import { isNavActive, navItemsForRole, type NavItem } from "./navigation";
 
 export type ShellMembership = {
   organizationId: string;
@@ -57,14 +57,16 @@ function NavLinks({
   pathname,
   collapsed,
   onNavigate,
+  role,
 }: {
   pathname: string;
   collapsed: boolean;
   onNavigate?: () => void;
+  role: Role;
 }) {
   return (
     <nav className="flex flex-col gap-1">
-      {NAV_ITEMS.map((item) => (
+      {navItemsForRole(role).map((item) => (
         <NavBlock
           key={item.title}
           item={item}
@@ -188,7 +190,12 @@ function SidebarBody({
         <OrgSwitcher model={model} compact={collapsed} />
       </div>
       <div className="flex-1 overflow-y-auto px-3 pb-4">
-        <NavLinks pathname={pathname} collapsed={collapsed} onNavigate={onNavigate} />
+        <NavLinks
+          pathname={pathname}
+          collapsed={collapsed}
+          onNavigate={onNavigate}
+          role={model.role}
+        />
       </div>
     </div>
   );
@@ -215,6 +222,7 @@ function Breadcrumbs() {
     insights: "AI Insights",
     reports: "Reports",
     settings: "Settings",
+    admin: "Admin",
   };
   const parts = pathname.split("/").filter(Boolean);
   const crumbs = parts.map((part, index) => ({
@@ -361,9 +369,9 @@ export function AppShell({ model, children }: { model: ShellModel; children: Rea
                 <DropdownMenuItem asChild>
                   <Link href="/settings">Settings</Link>
                 </DropdownMenuItem>
-                {roleCan(model.role, "settings:manage") ? (
+                {canAccessAdmin(model.role) ? (
                   <DropdownMenuItem asChild>
-                    <Link href="/settings">Organization settings</Link>
+                    <Link href="/admin">Organization settings</Link>
                   </DropdownMenuItem>
                 ) : null}
                 <DropdownMenuSeparator />

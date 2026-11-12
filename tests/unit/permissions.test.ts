@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { PERMISSIONS, ROLES, roleCan, type Permission, type Role } from "@/lib/permissions";
+import {
+  PERMISSIONS,
+  ROLES,
+  canAccessAdmin,
+  roleCan,
+  type Permission,
+  type Role,
+} from "@/lib/permissions";
 
 const expected: Record<Role, Record<Permission, boolean>> = {
   org_admin: Object.fromEntries(PERMISSIONS.map((permission) => [permission, true])) as Record<
@@ -99,5 +106,12 @@ describe("role permissions", () => {
       expect(roleCan("viewer", permission)).toBe(false);
     }
     expect(roleCan("viewer", "scenarios:review")).toBe(false);
+  });
+
+  it("opens the admin panel only for organization administrators", () => {
+    expect(canAccessAdmin("org_admin")).toBe(true);
+    expect(canAccessAdmin("operations_manager")).toBe(false);
+    expect(canAccessAdmin("finance_manager")).toBe(false);
+    expect(canAccessAdmin("viewer")).toBe(false);
   });
 });

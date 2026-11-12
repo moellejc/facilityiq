@@ -5,10 +5,13 @@ import {
   LayoutDashboard,
   LineChart,
   Settings,
+  Shield,
   Sparkles,
   Wallet,
   type LucideIcon,
 } from "lucide-react";
+
+import { canAccessAdmin, type Role } from "@/lib/permissions";
 
 export type NavChild = { title: string; href: string };
 
@@ -58,6 +61,17 @@ export const NAV_ITEMS: NavItem[] = [
   { title: "Reports", href: "/reports", icon: ClipboardList },
   { title: "Settings", href: "/settings", icon: Settings },
 ];
+
+export const ADMIN_NAV_ITEM: NavItem = {
+  title: "Admin",
+  href: "/admin",
+  icon: Shield,
+};
+
+export function navItemsForRole(role: Role): NavItem[] {
+  if (!canAccessAdmin(role)) return NAV_ITEMS;
+  return [...NAV_ITEMS, ADMIN_NAV_ITEM];
+}
 
 export function isNavActive(pathname: string, href: string) {
   if (href === "/facilities") return pathname === "/facilities";
