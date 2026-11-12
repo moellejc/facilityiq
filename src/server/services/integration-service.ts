@@ -1,5 +1,3 @@
-import "server-only";
-
 import { AppError } from "@/lib/errors";
 import { assertRole } from "@/lib/permissions";
 import { integrationCreateSchema, integrationUpdateSchema } from "@/lib/validation";

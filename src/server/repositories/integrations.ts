@@ -1,5 +1,3 @@
-import "server-only";
-
 import { and, asc, count, eq } from "drizzle-orm";
 
 import { withTenant } from "@/db/tenant";

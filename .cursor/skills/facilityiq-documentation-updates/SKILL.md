@@ -20,7 +20,6 @@ Source: Notion Engineering Standards hub ("Living in-repo companions"), SDLC §2
 | `.cursor/skills/*`                         | Condensed standards per domain/workflow                                                 | Notion standard or repo convention changes                               |
 | `.cursor/rules/*`                          | File-pattern hard rules                                                                 | A hard rule changes                                                      |
 | Notion "FacilityIQ Engineering Standards"  | Company standards (source of truth for skills)                                          | Standards decisions                                                      |
-| `automations/*.md`, `bot/approval-flow.md` | Slack → Linear → Cloud Agent → PR spec and human gates. A spec is not a live automation | When that flow, a gate, or where status is posted changes                |
 
 ## Rules
 

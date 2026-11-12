@@ -1,5 +1,3 @@
-import "server-only";
-
 import { AppError } from "@/lib/errors";
 import { assertRole } from "@/lib/permissions";
 import { facilityCreateSchema, facilityUpdateSchema } from "@/lib/validation";

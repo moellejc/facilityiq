@@ -14,7 +14,7 @@ description: FacilityIQ GitHub Actions CI and deploy workflow process — PR che
 
 Concurrency: CI cancels in-progress runs on the same ref; deploy does not cancel in-progress deploys.
 
-Permissions stay minimal (`contents: read`; deploy adds `packages: write` only when publishing).
+Permissions stay minimal (`contents: read` by default). `deploy.yml` still grants `packages: write` at workflow level; the standard is to grant it only on the publishing job.
 
 ## Local parity (run before opening a PR)
 

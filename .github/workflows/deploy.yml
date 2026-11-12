@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: read
+  packages: write
 
 concurrency:
   group: deploy-${{ github.ref }}
@@ -27,9 +28,6 @@ jobs:
     needs: checks
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -44,12 +42,8 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm audit --audit-level=high || true
 
-      # v0.28.0 depends on aquasecurity/setup-trivy@v0.2.1, a tag that no longer
-      # exists, so the image job fails while resolving actions. v0.36.0 pins
-      # setup-trivy to 3fb12ec (tag v0.2.6), which still resolves. Scan stays
-      # non-blocking (exit-code 0).
       - name: Scan image
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@v0.28.0
         with:
           image-ref: facilityiq:ci
           format: table
