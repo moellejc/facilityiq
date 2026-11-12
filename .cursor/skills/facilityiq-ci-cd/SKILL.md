@@ -38,7 +38,8 @@ Runs on push to `main` and `workflow_dispatch`:
 Notes:
 
 - Both vulnerability scans are currently **non-blocking** (they report, never fail). Making them blocking is a standards decision.
-- `packages: write` is currently granted at **workflow level**, while the standard says only the publishing job should have it. Flag this when touching `deploy.yml`; moving it to the `image` job is the compliant fix.
+- `packages: write` is granted only on the `image` job. The workflow default is `contents: read`.
+- The image scan uses `aquasecurity/trivy-action@v0.36.0`. `v0.28.0` depends on `aquasecurity/setup-trivy@v0.2.1`, and that tag no longer exists, so the `image` job fails while resolving actions. `v0.36.0` pins `setup-trivy` to commit `3fb12ec` (`v0.2.6`). Do not move the scan back to a release that references a missing `setup-trivy` tag.
 - No automatic production deploy. Production needs an explicit target and approval configuration.
 
 ## Workflow rules

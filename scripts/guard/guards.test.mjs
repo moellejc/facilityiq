@@ -147,6 +147,21 @@ test("ci.yml does not pin a pnpm version beside packageManager", () => {
   assert.doesNotMatch(step, /\n\s*version:/);
 });
 
+test("deploy image scan pins trivy-action v0.36.0 and limits packages:write to that job", () => {
+  const yml = readFileSync(new URL("../../.github/workflows/deploy.yml", import.meta.url), "utf8");
+  assert.match(yml, /uses:\s*aquasecurity\/trivy-action@v0\.36\.0\b/);
+  assert.doesNotMatch(yml, /uses:\s*aquasecurity\/trivy-action@v0\.28\.0\b/);
+  assert.doesNotMatch(yml, /uses:\s*aquasecurity\/setup-trivy@v0\.2\.1\b/);
+
+  const workflowPerms = yml.split(/^jobs:/m)[0];
+  assert.match(workflowPerms, /contents:\s*read/);
+  assert.doesNotMatch(workflowPerms, /packages:\s*write/);
+
+  const imageJob = yml.split(/^ {2}image:/m)[1].split(/^ {2}[a-z]/m)[0];
+  assert.match(imageJob, /contents:\s*read/);
+  assert.match(imageJob, /packages:\s*write/);
+});
+
 test("unchanged baseline debt is silent and one new hit is reported", () => {
   const script = `
     import { readFileSync } from "node:fs";
