@@ -15,6 +15,7 @@ Source: Notion Coding Conventions §9, §11, §15. Patterns from `src/components
 - **Missing data stays missing.** `null` points are gaps, never plotted as `0`. If no points are plottable, render `EmptyChart`.
 - **Projected/estimated series are visually distinct** from observed (dashed line, lighter fill, explicit legend label "Projected"/"Estimate"). Never merge them into one series.
 - Cost/ROI charts render only when the DTO contains finance fields (server already gated by `finance:read`) — don't fetch and hide.
+- Per-chart table view and CSV live in `ChartPanel` (`src/components/charts/chart-panel.tsx`), the client leaf for the toggle and download. The server page builds a `ChartTable` with `timeSeriesChartTable` / `namedValueChartTable` (`src/lib/charts/csv.ts`) from the series already on the page. Do not add an unauthenticated export route. Finance columns use `sensitivity: "finance"` and `includeFinance` from whether the service DTO includes `finance`. That flag is presentation. The service still enforces `finance:read`. One table is one observed series. A projected series is a separate column, never a copy of the observed value. Table cells use `formatMeasure`. CSV numbers stay unrounded. Null is an empty CSV field and "Unavailable" in the table, not `0`. Notion Coding Conventions do not describe this control yet.
 - Wrap in a fixed-height container (`h-72` pattern) with `ResponsiveContainer`.
 - en-US number formatting and USD; tooltips use the shared formatters.
 - Don't add new chart palettes ad hoc; use existing tokens/colors and flag palette needs.
@@ -31,4 +32,4 @@ Source: Notion Coding Conventions §9, §11, §15. Patterns from `src/components
 
 ## Tests
 
-Unit-test any display helper you add (`src/lib/analytics/display.ts`) including null/unavailable inputs.
+Unit-test any display helper you add (`src/lib/analytics/display.ts`) including null/unavailable inputs. CSV escaping, headers, null-versus-zero, and finance column filtering are covered in `tests/unit/chart-csv.test.ts`.
