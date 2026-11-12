@@ -2,7 +2,11 @@ import "server-only";
 
 import { AppError } from "@/lib/errors";
 import { assertRole } from "@/lib/permissions";
-import { facilityCreateSchema, facilityUpdateSchema } from "@/lib/validation";
+import {
+  facilityCreateSchema,
+  facilityQuickSearchQuerySchema,
+  facilityUpdateSchema,
+} from "@/lib/validation";
 
 import {
   deleteFacility,
@@ -10,7 +14,7 @@ import {
   updateFacility,
   type FacilityPatch,
 } from "../repositories/facilities";
-import type { RequestContext } from "./context";
+import type { RequestContext, ShellFacility } from "./context";
 
 function presentFacility(facility: {
   id: string;
@@ -27,6 +31,37 @@ function presentFacility(facility: {
     facilityType: facility.facilityType,
     squareFootage: facility.squareFootage,
     timezone: facility.timezone,
+  };
+}
+
+function presentFacilitySearchHit(facility: ShellFacility) {
+  return {
+    id: facility.id,
+    name: facility.name,
+    location: facility.location,
+    facilityType: facility.facilityType,
+  };
+}
+
+export async function searchFacilitiesByName(context: RequestContext, query: unknown) {
+  assertRole(context.role, "facilities:read");
+  const parsed = facilityQuickSearchQuerySchema.parse(query);
+  const needle = parsed.q.toLowerCase();
+  const matched = context.facilities.filter((facility) =>
+    facility.name.toLowerCase().includes(needle),
+  );
+  const direction = parsed.order === "desc" ? -1 : 1;
+  matched.sort((left, right) => {
+    const byName = left.name.localeCompare(right.name) * direction;
+    if (byName !== 0) return byName;
+    return left.id.localeCompare(right.id);
+  });
+  const start = (parsed.page - 1) * parsed.limit;
+  return {
+    data: matched.slice(start, start + parsed.limit).map(presentFacilitySearchHit),
+    page: parsed.page,
+    limit: parsed.limit,
+    total: matched.length,
   };
 }
 

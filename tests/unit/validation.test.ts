@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   facilityCreateSchema,
+  facilityQuickSearchQuerySchema,
   facilityUpdateSchema,
   integrationCreateSchema,
   loginSchema,
@@ -25,6 +26,21 @@ describe("request schemas", () => {
 
   it("caps default pagination", () => {
     expect(paginationSchema.parse({})).toEqual({ page: 1, limit: 25, order: "asc" });
+  });
+
+  it("accepts a facility name search query and rejects a short or punctuated q", () => {
+    expect(facilityQuickSearchQuerySchema.parse({ q: "West" })).toEqual({
+      q: "West",
+      page: 1,
+      limit: 25,
+      order: "asc",
+      sort: "name",
+    });
+    expect(facilityQuickSearchQuerySchema.safeParse({ q: "a" }).success).toBe(false);
+    expect(facilityQuickSearchQuerySchema.safeParse({ q: "West%" }).success).toBe(false);
+    expect(facilityQuickSearchQuerySchema.safeParse({ q: "West", limit: "500" }).success).toBe(
+      false,
+    );
   });
 
   it("accepts a facility with optional location and square footage", () => {
