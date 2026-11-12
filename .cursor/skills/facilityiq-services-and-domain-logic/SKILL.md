@@ -17,7 +17,7 @@ Source: Notion Coding Conventions §3, §14.
 | Pure lib   | `src/lib/analytics`, `src/lib/scenarios`, `src/lib/ai`, `src/lib/twin`        | Deterministic calculations, explicit inputs/outputs, no DB/network |
 | Validation | `src/lib/validation`, domain `schema.ts` (e.g. `src/lib/scenarios/schema.ts`) | Zod schemas + `z.infer` types                                      |
 
-Services are the authorization boundary — middleware/proxy and UI are not. A Server Component, Server Action, or worker calling a service gets the same checks.
+Services are the authorization boundary — middleware/proxy and UI are not. A Server Component, Server Action, or worker calling a service gets the same checks. Which adapter to add is `nextjs-server-action-vs-route-handler`; both adapters call the service defined here.
 
 ## Service shape
 
