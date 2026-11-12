@@ -30,7 +30,7 @@ jobs:
           node-version: 22
 
       - name: Guard self-tests
-        run: node --test scripts/guard/guards.test.mjs scripts/cursor-api/launch-agent.test.mjs
+        run: node --test scripts/guard/guards.test.mjs scripts/cursor-api/launch-agent.test.mjs scripts/drift-watcher/run-demo.test.mjs
 
       - name: Pre-PR guard
         env:

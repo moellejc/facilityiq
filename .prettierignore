@@ -9,3 +9,6 @@ dist
 .guard-report.md
 guard-report.md
 demo/bad-change.patch
+demo/drift-watcher/SIMULATED.diff
+demo/drift-watcher/SIMULATED-deprecated-entry.json
+demo/drift-watcher/SAMPLE-PR.md

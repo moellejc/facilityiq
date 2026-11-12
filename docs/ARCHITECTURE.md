@@ -207,7 +207,7 @@ Follow the specified `facilityiq/` tree (`src/app`, `components/{ui,layout,dashb
 
 Also add `docs/ARCHITECTURE.md` (this plan, kept in-repo) and `docs/KPI_FORMULAS.md`.
 
-Guardrails add `scripts/guard`, `.cursor/guardrails.json`, `.cursor/hooks`, `demo/bad-change.patch` (a fixture, not applied), and `docs/guardrails.md`. Those paths are documented here so they are not an undocumented top-level layout.
+Guardrails add `scripts/guard`, `.cursor/guardrails.json`, `.cursor/hooks`, `demo/bad-change.patch` (a fixture, not applied), and `docs/guardrails.md`. The Next.js drift watcher adds `automations/nextjs-drift-watcher.md` (a Cursor Automation spec; Joe creates the automation), `scripts/drift-watcher/` (the SIMULATED dry run), and `demo/drift-watcher/` (a SIMULATED fixture, not applied by default). Those paths are documented here so they are not an undocumented top-level layout.
 
 `bot/approval-flow.md` and `automations/*.md` are process specs, not product code. They describe the Slack → Linear → Cloud Agent → PR path and its human merge gate. Committing a spec does not create a Cursor Automation. `scripts/cursor-api/launch-agent.mjs` is a Cloud Agents API helper and is UNTESTED against a live key.
 

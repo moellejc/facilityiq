@@ -48,6 +48,7 @@ Notes:
 - No secrets committed or echoed. CI env values in `ci.yml` are throwaway test values — never reuse them elsewhere.
 - Pin action major versions; keep `concurrency` cancel-in-progress.
 - Take the pnpm version only from `package.json` `packageManager`. Do not also set `version` on `pnpm/action-setup`; that action fails when both are present.
+- `.github/workflows/guardrails.yml` is an extra pull-request and weekly workflow (guard self-tests, `pnpm guard` equivalent, a mocked deploy gate, drift). It does not replace the check order above. Notion CI Process does not mention it yet. The weekly mechanical check is the `drift` job (`node scripts/guard/drift-check.mjs` on cron `0 13 * * 1`). The Cursor Automation spec at `automations/nextjs-drift-watcher.md` opens pull requests from release notes. It does not add a second copy of that job. Joe creates the automation in the Cursor UI.
 - Keep CI env in sync with `.env.example` and `vitest.integration.config.ts` when adding variables.
 - Changing step order or removing a check needs a standards decision — update Notion CI Process and this skill.
 

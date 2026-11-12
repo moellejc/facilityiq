@@ -18,7 +18,13 @@ Two models are both in the current docs. This repo uses the one **without** Cach
 
 Do not enable `cacheComponents` or add `'use cache'` in a product change. That is an architecture change with a tenancy review (`facilityiq-security-review`).
 
-**Unverified:** that Next.js 16.4.5 deprecates `unstable_cache` in favor of `'use cache'`. The previous-model guide still documents `unstable_cache` for non-`fetch` work. `'use cache'` belongs to Cache Components, which this app has off. Do not add `unstable_cache` either. Coding Conventions §16 and `facilityiq-client-state-and-caching` forbid it until a reviewed read-model policy exists. Drizzle is not governed by `fetch` cache options.
+Three sources disagree about `unstable_cache` on the installed pin (`next@16.4.5`):
+
+- The installed API page opens with: This API has been replaced by `use cache` in Next.js 16. The next sentence recommends opting into Cache Components and replacing `unstable_cache` with the `use cache` directive. Path: `node_modules/next/dist/docs/01-app/03-api-reference/04-functions/unstable_cache.md`.
+- The installed migration guide says existing `unstable_cache` caching keeps working, migrating it is optional, and it continues to work with Cache Components. Path: `node_modules/next/dist/docs/01-app/02-guides/migrating-to-cache-components.md`.
+- The previous-model guide still documents `unstable_cache` for non-`fetch` work: https://nextjs.org/docs/app/guides/caching (fetched 2026-11-11).
+
+**Not verified:** that this disagreement is a `deprecated[]` rule. The watcher quotes all three and does not add one. `'use cache'` belongs to Cache Components, which this app has off. Do not add `unstable_cache` either. Coding Conventions §16 and `facilityiq-client-state-and-caching` forbid it until a reviewed read-model policy exists. Drizzle is not governed by `fetch` cache options.
 
 `React.cache` deduplicates inside one render, not across requests. Source: the same caching guide ("Deduplicating requests"). Pass the org and filters as arguments. It is not an authorization cache.
 
