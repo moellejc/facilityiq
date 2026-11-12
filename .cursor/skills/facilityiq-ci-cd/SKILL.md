@@ -46,6 +46,7 @@ Notes:
 - Minimum permissions: `contents: read` by default; `packages: write` only on the publishing job.
 - No secrets committed or echoed. CI env values in `ci.yml` are throwaway test values — never reuse them elsewhere.
 - Pin action major versions; keep `concurrency` cancel-in-progress.
+- Pin `aquasecurity/trivy-action` to a release whose `action.yaml` pins `aquasecurity/setup-trivy` by commit SHA. `v0.28.0` references the deleted tag `setup-trivy@v0.2.1` and fails in "Set up job" before the scan runs. Current pin: commit `ed142fd0673e97e23eac54620cfb913e5ce36c25` (`v0.36.0`), which uses `setup-trivy@3fb12ec12f41e471780db15c232d5dd185dcb514` (`v0.2.6`). Keep `exit-code: "0"` so the scan stays non-blocking.
 - Take the pnpm version only from `package.json` `packageManager`. Do not also set `version` on `pnpm/action-setup`; that action fails when both are present.
 - Keep CI env in sync with `.env.example` and `vitest.integration.config.ts` when adding variables.
 - Changing step order or removing a check needs a standards decision — update Notion CI Process and this skill.

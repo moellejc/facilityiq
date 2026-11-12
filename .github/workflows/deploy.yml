@@ -42,8 +42,12 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm audit --audit-level=high || true
 
+      # v0.28.0 calls aquasecurity/setup-trivy@v0.2.1. Aqua deleted that tag
+      # after the release was compromised, so the image job failed in setup
+      # before any step ran. v0.36.0 (ed142fd) pins setup-trivy to
+      # 3fb12ec12f41e471780db15c232d5dd185dcb514 (v0.2.6).
       - name: Scan image
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: facilityiq:ci
           format: table
