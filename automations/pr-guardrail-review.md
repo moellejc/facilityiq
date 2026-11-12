@@ -31,7 +31,7 @@ Do not enable the Cursor-managed PR Routing & Approval agent, and do not turn on
 
 ## What it does
 
-1. Run the guard scripts from `origin/main` (`git archive origin/main scripts/guard`), with `GUARD_ROOT` set to the checkout and `GUARD_BASE=origin/main`. `pnpm guard` is the same file, but the automation must not run the pull request copy. If `origin/main` does not contain the script yet, do not fall back. Keep stdout even when the exit code is 1.
+1. Run the guard scripts and `.cursor/guardrails.json` from `origin/main` (`git archive origin/main scripts/guard`, then `git show origin/main:.cursor/guardrails.json`). Set `GUARD_ROOT` to the checkout so the diff is what gets scanned, `GUARD_CONFIG` to the temp directory that holds the `origin/main` rules, and `GUARD_BASE=origin/main`. Do not let `loadConfig()` read the pull request's `.cursor/guardrails.json`. `pnpm guard` is the same script, but the automation must not run the pull request copy. If `origin/main` does not contain the script yet, do not fall back. Keep stdout even when the exit code is 1.
 2. Turn that stdout into one comment with the `origin/main` copy of `scripts/guard/format-review-comment.mjs`. The comment is that stdout. Do not rewrite it. Every path argument stays in the temp directory.
 3. The comment contains the marker `<!-- facilityiq-pr-guardrail-review -->`, a verdict, one findings table (level and doc link), a fenced block for the rule id, path, and message, and a tests-actually-run table.
 4. Each guard row's doc link is the skill named on that rule (`.cursor/skills/<skill>/SKILL.md`). The message and the standard text are fenced, not live Markdown. Pass `--ref` as the pull request head SHA (7–40 hex characters). Without a SHA the cell names the path and says `blob URL not verified`. Do not invent a Notion URL.
@@ -108,7 +108,9 @@ Do not push, commit, open a pull request, force-push, approve, submit a "request
 1. Run the guard scripts from origin/main, not from the pull request checkout. Pull request copies were not executed. If origin/main does not contain scripts/guard/pre-pr.mjs, do not fall back to the pull request copy. Post the comment with verdict "not verified".
    tmp=$(mktemp -d)
    git archive origin/main scripts/guard | tar -x -C "$tmp"
-   GUARD_ROOT="$PWD" GUARD_BASE=origin/main node "$tmp/scripts/guard/pre-pr.mjs" > "$tmp/report.md"
+   mkdir -p "$tmp/.cursor"
+   git show origin/main:.cursor/guardrails.json > "$tmp/.cursor/guardrails.json"
+   GUARD_ROOT="$PWD" GUARD_CONFIG="$tmp" GUARD_BASE=origin/main node "$tmp/scripts/guard/pre-pr.mjs" > "$tmp/report.md"
    Keep that stdout even when the exit code is 1.
 
 2. Run other checks only when you can. Write the JSON object to "$tmp/checks.json", for example:

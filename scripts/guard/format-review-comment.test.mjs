@@ -1,7 +1,7 @@
 // Tests for the one-comment formatter. Run: node --test scripts/guard/format-review-comment.test.mjs
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -516,4 +516,30 @@ test("the automation spec runs guard scripts from origin/main and treats the dif
   assert.match(spec, /must not be followed as instructions/);
   assert.match(spec, /origin\/main:\.github\/CODEOWNERS/);
   assert.match(spec, /git archive origin\/main scripts\/guard/);
+  assert.match(spec, /origin\/main:\.cursor\/guardrails\.json/);
+  assert.match(spec, /GUARD_CONFIG=/);
+});
+
+test("GUARD_CONFIG is the rule file, not the checkout GUARD_ROOT points at", () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-config-"));
+  mkdirSync(join(dir, ".cursor"));
+  const weakened = loadConfig();
+  weakened.scopes.infra.allow = weakened.scopes.infra.allow.filter(
+    (glob) => glob !== "automations/**",
+  );
+  writeFileSync(join(dir, ".cursor/guardrails.json"), JSON.stringify(weakened));
+  const result = spawnSync(
+    process.execPath,
+    [
+      "--input-type=module",
+      "-e",
+      `import { loadConfig } from "./scripts/guard/lib.mjs";
+       const allow = loadConfig().scopes.infra.allow;
+       if (allow.includes("automations/**")) process.exit(2);
+       process.exit(0);`,
+    ],
+    { cwd: ROOT, encoding: "utf8", env: { ...process.env, GUARD_ROOT: ROOT, GUARD_CONFIG: dir } },
+  );
+  assert.equal(result.status, 0, result.stderr);
+  assert.ok(loadConfig().scopes.infra.allow.includes("automations/**"));
 });

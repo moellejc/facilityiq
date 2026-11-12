@@ -82,7 +82,7 @@ Spec: [`automations/pr-guardrail-review.md`](../automations/pr-guardrail-review.
 
 Joe creates the automation in the Cursor UI (`cursor.com/automations` or `/automate`). **It is not live until he does.** This repository does not create or enable it. GitHub Actions does not post the comment.
 
-On **Pull request opened** for `moellejc/facilityiq`, the agent runs the guard scripts from `origin/main` (`git archive origin/main scripts/guard`) and posts one comment. Pull request copies of those scripts are not executed. `scripts/guard/format-review-comment.mjs` turns that stdout into the comment: verdict, each finding with its rule id and skill doc, and a tests-actually-run table. A result this run did not produce is `not verified`. Staff Eng is the `*` owner in `origin/main:.github/CODEOWNERS` (`@moellejc`). The agent does not approve, merge, or close.
+On **Pull request opened** for `moellejc/facilityiq`, the agent runs the guard scripts and `.cursor/guardrails.json` from `origin/main` (`git archive origin/main scripts/guard`, `GUARD_CONFIG` pointing at that copy) and posts one comment. Pull request copies of those scripts and of the rule file are not executed. `scripts/guard/format-review-comment.mjs` turns that stdout into the comment: verdict, each finding with its rule id and skill doc, and a tests-actually-run table. A result this run did not produce is `not verified`. Staff Eng is the `*` owner in `origin/main:.github/CODEOWNERS` (`@moellejc`). The agent does not approve, merge, or close.
 
 `Draft opened` is a different Cursor trigger and is not selected. Fork pull requests are not supported.
 
