@@ -3,6 +3,7 @@ import { and, asc, count, desc, eq, sql } from "drizzle-orm";
 import { withTenant } from "@/db/tenant";
 import {
   assets,
+  auditLogs,
   facilities,
   facilityAreas,
   facilityLayouts,
@@ -10,6 +11,33 @@ import {
   operationalMetrics,
   scenarios,
 } from "@/db/schema";
+import type { FacilityType } from "@/lib/facilities";
+import { isUniqueViolation } from "@/lib/postgres";
+
+const facilitySummaryColumns = {
+  id: facilities.id,
+  name: facilities.name,
+  location: facilities.location,
+  facilityType: facilities.facilityType,
+  squareFootage: facilities.squareFootage,
+  timezone: facilities.timezone,
+};
+
+export type FacilityInput = {
+  name: string;
+  location: string | null;
+  facilityType: FacilityType;
+  squareFootage: string | null;
+  timezone: string;
+};
+
+export type FacilityPatch = {
+  name?: string;
+  location?: string | null;
+  facilityType?: FacilityType;
+  squareFootage?: string | null;
+  timezone?: string;
+};
 
 export async function listFacilities(organizationId: string, userId: string) {
   return withTenant({ organizationId, userId }, async (tx) => {
@@ -25,6 +53,89 @@ export async function listFacilities(organizationId: string, userId: string) {
       .from(facilities)
       .where(eq(facilities.organizationId, organizationId))
       .orderBy(asc(facilities.name));
+  });
+}
+
+export async function insertFacility(organizationId: string, userId: string, input: FacilityInput) {
+  try {
+    return await withTenant({ organizationId, userId }, async (tx) => {
+      const [facility] = await tx
+        .insert(facilities)
+        .values({
+          organizationId,
+          name: input.name,
+          location: input.location,
+          facilityType: input.facilityType,
+          squareFootage: input.squareFootage,
+          timezone: input.timezone,
+        })
+        .returning(facilitySummaryColumns);
+      if (!facility) return { status: "conflict" as const };
+      await tx.insert(auditLogs).values({
+        organizationId,
+        actorUserId: userId,
+        action: "facility.create",
+        entityType: "facility",
+        entityId: facility.id,
+        metadata: { name: facility.name },
+      });
+      return { status: "created" as const, facility };
+    });
+  } catch (error) {
+    if (isUniqueViolation(error)) return { status: "conflict" as const };
+    throw error;
+  }
+}
+
+export async function updateFacility(
+  organizationId: string,
+  userId: string,
+  facilityId: string,
+  patch: FacilityPatch,
+) {
+  try {
+    return await withTenant({ organizationId, userId }, async (tx) => {
+      const [facility] = await tx
+        .update(facilities)
+        .set({ ...patch, updatedAt: new Date() })
+        .where(and(eq(facilities.organizationId, organizationId), eq(facilities.id, facilityId)))
+        .returning(facilitySummaryColumns);
+      if (!facility) return { status: "missing" as const };
+      await tx.insert(auditLogs).values({
+        organizationId,
+        actorUserId: userId,
+        action: "facility.update",
+        entityType: "facility",
+        entityId: facility.id,
+        metadata: { name: facility.name },
+      });
+      return { status: "updated" as const, facility };
+    });
+  } catch (error) {
+    if (isUniqueViolation(error)) return { status: "conflict" as const };
+    throw error;
+  }
+}
+
+export async function deleteFacility(organizationId: string, userId: string, facilityId: string) {
+  return withTenant({ organizationId, userId }, async (tx) => {
+    const [existing] = await tx
+      .select({ id: facilities.id, name: facilities.name })
+      .from(facilities)
+      .where(and(eq(facilities.organizationId, organizationId), eq(facilities.id, facilityId)));
+    if (!existing) return { status: "missing" as const };
+    await tx.insert(auditLogs).values({
+      organizationId,
+      actorUserId: userId,
+      action: "facility.delete",
+      entityType: "facility",
+      entityId: existing.id,
+      metadata: { name: existing.name },
+    });
+    await tx
+      .delete(facilities)
+      .where(and(eq(facilities.organizationId, organizationId), eq(facilities.id, existing.id)));
+    return { status: "deleted" as const, facility: existing };
   });
 }
 

@@ -7,6 +7,8 @@ description: FacilityIQ Next.js 16 App Router conventions — routing files, rou
 
 Source: Notion Coding Conventions §1, §14–15, §18. Next.js is **16.4.x** with breaking changes — read `node_modules/next/dist/docs/` before using any API you haven't verified in this repo.
 
+Which files a new segment needs: `nextjs-app-router-route`. Action versus Route Handler: `nextjs-server-action-vs-route-handler`. Cache function signatures: `nextjs-caching-and-revalidation`. A Next.js version bump: `nextjs-upgrade-assistant`. This skill stays the FacilityIQ page and layout pattern.
+
 ## Routing files
 
 | File                    | Use in FacilityIQ                                                                                                        |
@@ -57,7 +59,7 @@ Use `metadata` / `generateMetadata` or metadata files. Never `next/head`.
 
 ## Server Actions (`src/server/actions`)
 
-Optional thin adapters for progressive-enhancement forms. Pattern from `src/server/actions/settings.ts`:
+Optional thin adapters for progressive-enhancement forms. Pattern from `src/server/actions/admin.ts`:
 
 - `"use server"`; call `requireRequestContext()`; pass raw `FormData` values to the **same service** the API uses (the service Zod-parses and checks permissions).
 - Return a safe `{ error?, ok? }` state; map only `AppError` messages, otherwise a generic message.
