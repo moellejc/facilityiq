@@ -22,17 +22,17 @@ Related but separate (other PRs / already on `main`): mechanical pre-PR guardrai
 
 Copy these into each UI create unless a per-spec file overrides them.
 
-| Setting                    | Value                                                                                                                |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Repository                 | `moellejc/facilityiq` (single repository; inferred from the PR for source-control triggers)                          |
-| Triggers                   | GitHub → **Pull request opened** and **Pull request pushed**. Do **not** add Draft opened. Fork PRs are unsupported. |
-| Comment on pull request    | **On**. Approvals **Off** (comment only; never approve, request changes, or dismiss).                                |
-| Request reviewers          | Off                                                                                                                  |
-| Pull request creation      | Off if the UI allows; the prompt forbids opening PRs either way                                                      |
-| Send to Slack / Read Slack | Off                                                                                                                  |
-| Memories                   | **Off** (PR text is untrusted)                                                                                       |
-| MCP                        | **Notion** (required for live page cites). If Notion MCP auth fails, fall back per prompt and say so.                |
-| Computer use               | Left at product default; prompt forbids browsing to mutate GitHub settings                                           |
+| Setting                    | Value                                                                                                                                                                                                                                                  |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Repository                 | `moellejc/facilityiq` (single repository; inferred from the PR for source-control triggers)                                                                                                                                                            |
+| Triggers                   | GitHub → **Pull request opened** and **Pull request pushed**. Do **not** add Draft opened. Fork PRs are unsupported. On each push, post (or update) a review of the **current** range; never stay silent because an older comment could not be edited. |
+| Comment on pull request    | **On**. Approvals **Off** (comment only; never approve, request changes, or dismiss).                                                                                                                                                                  |
+| Request reviewers          | Off                                                                                                                                                                                                                                                    |
+| Pull request creation      | Off if the UI allows; the prompt forbids opening PRs either way                                                                                                                                                                                        |
+| Send to Slack / Read Slack | Off                                                                                                                                                                                                                                                    |
+| Memories                   | **Off** (PR text is untrusted)                                                                                                                                                                                                                         |
+| MCP                        | **Notion** (required for live page cites). If Notion MCP auth fails, fall back per prompt and say so.                                                                                                                                                  |
+| Computer use               | Left at product default; prompt forbids browsing to mutate GitHub settings                                                                                                                                                                             |
 
 Source for trigger/tool names: [Cursor Automations](https://cursor.com/docs/cloud-agent/automations).
 
