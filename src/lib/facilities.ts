@@ -8,3 +8,7 @@ export const FACILITY_TYPE_LABELS: Record<FacilityType, string> = {
   plant: "Plant",
   other: "Other",
 };
+
+export function facilityNameMatchesQuery(name: string, query: string) {
+  return name.toLowerCase().includes(query.trim().toLowerCase());
+}

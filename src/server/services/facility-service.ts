@@ -1,8 +1,13 @@
 import "server-only";
 
 import { AppError } from "@/lib/errors";
+import { facilityNameMatchesQuery } from "@/lib/facilities";
 import { assertRole } from "@/lib/permissions";
-import { facilityCreateSchema, facilityUpdateSchema } from "@/lib/validation";
+import {
+  facilityCreateSchema,
+  facilityNameSearchSchema,
+  facilityUpdateSchema,
+} from "@/lib/validation";
 
 import {
   deleteFacility,
@@ -27,6 +32,21 @@ function presentFacility(facility: {
     facilityType: facility.facilityType,
     squareFootage: facility.squareFootage,
     timezone: facility.timezone,
+  };
+}
+
+export function searchFacilitiesByName(context: RequestContext, query: unknown) {
+  assertRole(context.role, "facilities:read");
+  const parsed = facilityNameSearchSchema.parse(query);
+  const matches = context.facilities.filter((facility) =>
+    facilityNameMatchesQuery(facility.name, parsed.q),
+  );
+  const start = (parsed.page - 1) * parsed.limit;
+  return {
+    data: matches.slice(start, start + parsed.limit).map(presentFacility),
+    page: parsed.page,
+    limit: parsed.limit,
+    total: matches.length,
   };
 }
 

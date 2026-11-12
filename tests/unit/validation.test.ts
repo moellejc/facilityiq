@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
+import { facilityNameMatchesQuery } from "@/lib/facilities";
 import {
   facilityCreateSchema,
+  facilityNameSearchSchema,
   facilityUpdateSchema,
   integrationCreateSchema,
   loginSchema,
@@ -25,6 +27,32 @@ describe("request schemas", () => {
 
   it("caps default pagination", () => {
     expect(paginationSchema.parse({})).toEqual({ page: 1, limit: 25, order: "asc" });
+  });
+
+  it("accepts a facility name search query and paginates", () => {
+    expect(facilityNameSearchSchema.parse({ q: "West" })).toEqual({
+      q: "West",
+      page: 1,
+      limit: 25,
+      order: "asc",
+    });
+    expect(facilityNameSearchSchema.parse({ q: "  West Plant  ", page: "2", limit: "10" })).toEqual({
+      q: "West Plant",
+      page: 2,
+      limit: 10,
+      order: "asc",
+    });
+  });
+
+  it("rejects a facility name search query that is too short, too long, or not alphanumeric", () => {
+    expect(facilityNameSearchSchema.safeParse({ q: "a" }).success).toBe(false);
+    expect(facilityNameSearchSchema.safeParse({ q: "a".repeat(41) }).success).toBe(false);
+    expect(facilityNameSearchSchema.safeParse({ q: "West%" }).success).toBe(false);
+  });
+
+  it("matches facility names case-insensitively on a substring", () => {
+    expect(facilityNameMatchesQuery("West Distribution Center", "west")).toBe(true);
+    expect(facilityNameMatchesQuery("West Distribution Center", "Plant")).toBe(false);
   });
 
   it("accepts a facility with optional location and square footage", () => {
