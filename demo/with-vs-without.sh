@@ -56,7 +56,7 @@ same_inode() {
 }
 
 make_checkout() {
-  local dest="$1" f base src sample loose_dest loose_src
+  local dest="$1" f pack_name src sample loose_dest loose_src
   git clone --no-local --quiet "$ROOT" "$dest"
   git -C "$dest" remote remove origin
   if [[ -s "$dest/.git/objects/info/alternates" ]]; then
@@ -65,8 +65,8 @@ make_checkout() {
   fi
   for f in "$dest/.git/objects/pack/"*.pack "$dest/.git/objects/pack/"*.idx; do
     [[ -f "$f" ]] || continue
-    base="$(basename "$f")"
-    src="$ROOT/.git/objects/pack/$base"
+    pack_name="$(basename "$f")"
+    src="$ROOT/.git/objects/pack/$pack_name"
     if [[ -f "$src" ]] && same_inode "$f" "$src"; then
       echo "Refusing to continue: clone shares git object inodes with the primary checkout." >&2
       exit 1
