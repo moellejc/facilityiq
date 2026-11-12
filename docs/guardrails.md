@@ -75,6 +75,7 @@ The patch is expected to fail on Pages Router APIs, sync `params`, `.toFixed(`, 
 - Cursor does not run `.cursor/hooks.json` inside GitHub Actions. The self-tests pipe sample JSON at the hook scripts. That is not a live Cursor session.
 - The deploy-gate job in `.github/workflows/guardrails.yml` prints a mocked gate. It does not deploy. Production remains `workflow_dispatch` with `deploy_production=true` (GitFlow §5.5).
 - Cursor Automations are specs under `automations/`. Joe creates them in the Cursor UI. Nothing in this repo proves one is live. Slack posting from an automation is not verified.
+- The monolithic **FacilityIQ Standards** automation is split into five specs under `automations/facilityiq-standards*.md` (hub, Coding Conventions, Unit Test Standards, CI Process, SDLC). Index: [`automations/facilityiq-standards.md`](../automations/facilityiq-standards.md). They are not live until Joe creates them and disables the old combined automation.
 - `scripts/cursor-api/launch-agent.mjs` is UNTESTED against a live `CURSOR_API_KEY`. Its local tests never call `api.cursor.com`.
 - The shell hook denies `gh pr merge` and force-push. It does not pattern-match a plain `git push` of `main`. Agents still must not push to `main`. That push is a process rule, not a hook match.
 
