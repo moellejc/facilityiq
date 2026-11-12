@@ -280,8 +280,10 @@ function findingsMarkdown(guard, body, ref) {
   }
   for (const problem of bodyRows) {
     const doc = blobLink("pull_request_template.md", ".github/pull_request_template.md", ref);
-    lines.push(`| error | \`${problem.rule}\` | \`(pull request body)\` | ${doc} |`);
-    whys.push(`Why for \`${problem.rule}\`:\n\n${fence(`${problem.message}\nGitFlow §9.2`)}`);
+    lines.push(`| error | ${doc} |`);
+    whys.push(
+      fence([problem.rule, "(pull request body)", problem.message, "GitFlow §9.2"].join("\n")),
+    );
   }
   if (whys.length) lines.push("", ...whys);
   return lines.join("\n");

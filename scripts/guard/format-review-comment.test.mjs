@@ -231,7 +231,8 @@ test("a missing required section requests changes and links the pull request tem
     codeowners: owners,
   });
   assert.match(comment, /\*\*Verdict: Changes requested\*\*/);
-  assert.match(comment, /\| error \| `pr-body-section` \| `\(pull request body\)` \|/);
+  assert.match(comment, /\| error \| \[pull_request_template\.md\]/);
+  assert.match(comment, /pr-body-section/);
   assert.match(
     comment,
     /\[pull_request_template\.md\]\(https:\/\/github\.com\/moellejc\/facilityiq\/blob\/0123456789abcdef\/\.github\/pull_request_template\.md\)/,
